@@ -1,0 +1,3931 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>HydroSense — IoT Farm Dashboard</title>
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22HydroSense%22%2C%22short_name%22%3A%22HydroSense%22%2C%22description%22%3A%22IoT%20Farm%20Dashboard%20Melon%20Hidroponik%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230D1410%22%2C%22theme_color%22%3A%22%231D9E75%22%2C%22orientation%22%3A%22portrait%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%2520viewBox%3D'0%25200%2520192%2520192'%253E%253Crect%2520width%3D'192'%2520height%3D'192'%2520rx%3D'40'%2520fill%3D'%25231D9E75'%2F%253E%253Cpath%2520d%3D'M96%2040c-28%2038-44%2056-44%2076a44%2044%200%25200%25200%252088%25200c0-20-16-38-44-76z'%2520fill%3D'white'%2F%253E%253C%2Fsvg%253E%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
+
+<!-- PWA iOS Support -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HydroSense">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1D9E75">
+
+<!-- Apple Touch Icon (inline SVG as data URI) -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%231D9E75'/%3E%3Cpath d='M90 36c-26 35-40 52-40 70a40 40 0 0 0 80 0c0-18-14-35-40-70z' fill='white'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://unpkg.com/mqtt@5.3.4/dist/mqtt.min.js"></script>
+<style>
+  :root {
+    --green-50: #E1F5EE;
+    --green-100: #9FE1CB;
+    --green-400: #1D9E75;
+    --green-600: #0F6E56;
+    --green-800: #085041;
+    --green-900: #04342C;
+    --blue-50: #E6F1FB;
+    --blue-400: #378ADD;
+    --blue-600: #185FA5;
+    --amber-50: #FAEEDA;
+    --amber-400: #BA7517;
+    --amber-600: #854F0B;
+    --red-50: #FCEBEB;
+    --red-400: #E24B4A;
+    --red-600: #A32D2D;
+    --gray-50: #F5F7F5;
+    --gray-100: #E8EDE8;
+    --gray-200: #C8D0C8;
+    --gray-400: #7A887A;
+    --gray-600: #4A5A4A;
+    --gray-800: #2A3A2A;
+    --gray-900: #1A241A;
+    --bg: #0D1410;
+    --bg-card: #131A15;
+    --bg-card2: #182018;
+    --bg-hover: #1E281E;
+    --border: rgba(29,158,117,0.15);
+    --border-bright: rgba(29,158,117,0.35);
+    --text-primary: #E8F0E8;
+    --text-secondary: #8AA08A;
+    --text-muted: #4A604A;
+    --accent: #1D9E75;
+    --accent-dim: #0F6E56;
+    --warn: #BA7517;
+    --danger: #E24B4A;
+    --info: #378ADD;
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+    --r-sm: 6px;
+    --r-md: 10px;
+    --r-lg: 14px;
+    --r-xl: 20px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  /* ── TOPBAR ─────────────────────────────────────── */
+  .topbar {
+    height: 56px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-mark {
+    width: 32px;
+    height: 32px;
+    background: var(--accent);
+    border-radius: var(--r-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-mark svg { width: 18px; height: 18px; }
+
+  .logo-name {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+  }
+
+  .logo-tag {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    letter-spacing: 0.05em;
+  }
+
+  .topbar-center {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .sys-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(29,158,117,0.08);
+    border: 1px solid rgba(29,158,117,0.2);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--accent);
+    font-family: var(--font-mono);
+  }
+
+  .pulse {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .clock {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-secondary);
+    letter-spacing: 0.05em;
+  }
+
+  .icon-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: var(--r-md);
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+
+  .icon-btn:hover { background: var(--bg-hover); border-color: var(--border-bright); color: var(--text-primary); }
+
+  .notif-badge {
+    position: absolute;
+    top: 3px; right: 3px;
+    min-width: 16px; height: 16px;
+    border-radius: 8px;
+    background: var(--danger);
+    border: 1.5px solid var(--bg-card);
+    font-size: 9px;
+    font-weight: 700;
+    color: #fff;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    font-family: var(--font-mono);
+  }
+
+  .avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--accent-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--green-50);
+    cursor: pointer;
+  }
+
+  /* ── LAYOUT ─────────────────────────────────────── */
+  .layout {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* ── SIDEBAR ────────────────────────────────────── */
+  .sidebar {
+    width: 220px;
+    background: var(--bg-card);
+    border-right: 1px solid var(--border);
+    padding: 16px 0;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+
+  .nav-group {
+    padding: 0 10px;
+    margin-bottom: 8px;
+  }
+
+  .nav-group-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 10px 10px 6px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 12px;
+    border-radius: var(--r-md);
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 1px;
+    transition: all 0.15s;
+    font-family: var(--font-body);
+    font-weight: 400;
+    user-select: none;
+  }
+
+  .nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+  .nav-item.active {
+    background: rgba(29,158,117,0.12);
+    color: #5DCAA5;
+    border: 1px solid rgba(29,158,117,0.18);
+  }
+
+  .nav-item.active .nav-ico { color: var(--accent); }
+
+  .nav-ico {
+    width: 16px; height: 16px;
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+
+  .nav-item.active .nav-ico { opacity: 1; }
+
+  .nav-badge {
+    margin-left: auto;
+    font-size: 10px;
+    background: var(--danger);
+    color: #fff;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-weight: 500;
+    font-family: var(--font-mono);
+  }
+
+  .sidebar-farm {
+    margin: 12px 10px 0;
+    padding: 12px;
+    background: rgba(29,158,117,0.06);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+  }
+
+  .farm-name {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 2px;
+  }
+
+  .farm-loc {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+  }
+
+  /* ── MAIN CONTENT ───────────────────────────────── */
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    background: var(--bg);
+  }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── PAGE HEADER ───────────────────────────────── */
+  .page-hdr {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .page-title {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+  }
+
+  .page-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    margin-top: 4px;
+  }
+
+  .hdr-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: var(--r-md);
+    border: 1px solid var(--border-bright);
+    background: rgba(29,158,117,0.08);
+    color: var(--accent);
+    font-size: 12px;
+    cursor: pointer;
+    font-family: var(--font-body);
+    transition: all 0.15s;
+  }
+
+  .hdr-btn:hover { background: rgba(29,158,117,0.16); }
+
+  /* ── METRIC CARDS ───────────────────────────────── */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .mc {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 16px;
+    transition: border-color 0.2s;
+  }
+
+  .mc:hover { border-color: var(--border-bright); }
+
+  .mc-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .mc-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .mc-ico {
+    width: 28px; height: 28px;
+    border-radius: var(--r-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mc-val {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .mc-unit {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 400;
+    margin-left: 3px;
+  }
+
+  .mc-trend {
+    font-size: 11px;
+    margin-top: 6px;
+    font-family: var(--font-mono);
+  }
+
+  .trend-ok { color: var(--accent); }
+  .trend-warn { color: var(--warn); }
+  .trend-danger { color: var(--danger); }
+  .trend-up { color: #EF9F27; }
+  .trend-bad { color: var(--danger); }
+
+  .mc-bar {
+    height: 2px;
+    background: var(--bg-hover);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 10px;
+  }
+
+  .mc-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent);
+    transition: width 1s ease;
+  }
+
+  /* ── CARDS ──────────────────────────────────────── */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 14px;
+    letter-spacing: -0.01em;
+  }
+
+  .two-col { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .three-col { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; margin-bottom: 16px; }
+  .two-equal { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+
+  /* ── ZONE CARDS ─────────────────────────────────── */
+  .zone-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .zone-card {
+    background: var(--bg-card2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .zone-card:hover { border-color: var(--border-bright); background: var(--bg-hover); }
+
+  .zone-card.active { border-color: var(--accent); background: rgba(29,158,117,0.07); }
+
+  .zone-name {
+    font-size: 12px;
+    font-weight: 500;
+    font-family: var(--font-display);
+    color: var(--text-primary);
+    margin-bottom: 3px;
+  }
+
+  .zone-crop {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    margin-bottom: 8px;
+  }
+
+  .zone-params {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+
+  .zparam {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+  }
+
+  .zparam b { color: var(--text-primary); font-weight: 500; }
+
+  .zone-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-family: var(--font-mono);
+  }
+
+  .zp-ok { background: rgba(29,158,117,0.15); color: #5DCAA5; }
+  .zp-warn { background: rgba(186,117,23,0.15); color: #EF9F27; }
+  .zp-bad { background: rgba(226,75,74,0.15); color: #F09595; }
+
+  /* ── ALERT ITEMS ────────────────────────────────── */
+  .alert-stack { display: flex; flex-direction: column; gap: 8px; }
+
+  .alert-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 12px;
+    border-radius: var(--r-md);
+    border: 1px solid;
+  }
+
+  .ar-warn { background: rgba(186,117,23,0.07); border-color: rgba(186,117,23,0.25); }
+  .ar-danger { background: rgba(226,75,74,0.07); border-color: rgba(226,75,74,0.25); }
+  .ar-info { background: rgba(55,138,221,0.07); border-color: rgba(55,138,221,0.25); }
+  .ar-ok { background: rgba(29,158,117,0.07); border-color: rgba(29,158,117,0.2); }
+
+  .ar-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+
+  .ar-msg { font-size: 12px; color: var(--text-primary); line-height: 1.5; }
+  .ar-time { font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); margin-top: 2px; }
+
+  /* ── CHART WRAPPER ──────────────────────────────── */
+  .chart-wrap { position: relative; width: 100%; }
+
+  /* ── PUMP CARDS ─────────────────────────────────── */
+  .pump-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 16px;
+  }
+
+  .pump-hdr {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .pump-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    font-family: var(--font-display);
+  }
+
+  .pump-stat { font-size: 12px; color: var(--text-secondary); margin-bottom: 5px; font-family: var(--font-mono); }
+  .pump-stat b { color: var(--text-primary); font-weight: 400; }
+
+  .pump-bar { height: 3px; background: var(--bg-hover); border-radius: 3px; overflow: hidden; margin-top: 10px; }
+  .pump-fill { height: 100%; border-radius: 3px; background: var(--accent); transition: width 0.5s; }
+
+  /* ── TOGGLE ─────────────────────────────────────── */
+  .toggle {
+    width: 38px; height: 21px;
+    border-radius: 12px;
+    cursor: pointer;
+    position: relative;
+    border: none;
+    outline: none;
+    transition: background 0.25s;
+    flex-shrink: 0;
+  }
+
+  .toggle.on { background: var(--accent); }
+  .toggle.off { background: var(--bg-hover); border: 1px solid var(--border); }
+
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    background: #fff;
+    top: 3px;
+    transition: left 0.2s;
+  }
+
+  .toggle.on::after { left: 20px; }
+  .toggle.off::after { left: 3px; }
+
+  /* ── SCHEDULE ───────────────────────────────────── */
+  .sch-list { display: flex; flex-direction: column; gap: 6px; }
+
+  .sch-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    background: var(--bg-card2);
+    border-radius: var(--r-md);
+    border: 1px solid transparent;
+    font-family: var(--font-mono);
+  }
+
+  .sch-row.active-sch {
+    border-color: rgba(55,138,221,0.3);
+    background: rgba(55,138,221,0.07);
+  }
+
+  .sch-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .sch-time { font-size: 12px; color: var(--text-primary); width: 52px; }
+  .sch-name { font-size: 12px; color: var(--text-secondary); flex: 1; font-family: var(--font-body); }
+
+  .sch-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-family: var(--font-mono);
+  }
+
+  .sb-done { background: rgba(29,158,117,0.15); color: #5DCAA5; }
+  .sb-active { background: rgba(55,138,221,0.15); color: #85B7EB; }
+  .sb-pending { color: var(--text-muted); background: var(--bg-hover); }
+
+  /* ── TABLE ──────────────────────────────────────── */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .data-table th { text-align: left; font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 6px 10px; border-bottom: 1px solid var(--border); font-weight: 400; }
+  .data-table td { padding: 9px 10px; border-bottom: 1px solid rgba(255,255,255,0.03); color: var(--text-primary); font-family: var(--font-mono); }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: var(--bg-hover); }
+
+  .pill {
+    display: inline-flex;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-family: var(--font-mono);
+  }
+
+  .pill-green { background: rgba(29,158,117,0.15); color: #5DCAA5; }
+  .pill-blue { background: rgba(55,138,221,0.15); color: #85B7EB; }
+  .pill-amber { background: rgba(186,117,23,0.2); color: #EF9F27; }
+  .pill-red { background: rgba(226,75,74,0.15); color: #F09595; }
+
+  /* ── GAUGE ──────────────────────────────────────── */
+  .gauge-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; margin-bottom: 16px; }
+
+  .gauge-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 16px;
+    text-align: center;
+  }
+
+  .gauge-label { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .gauge-val { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--text-primary); }
+  .gauge-unit { font-size: 12px; color: var(--text-secondary); }
+
+  /* ── SETTINGS ───────────────────────────────────── */
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  /* sync badge di card-title */
+  .sync-badge {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1px solid;
+    margin-left: auto;
+    transition: all 0.2s;
+  }
+  .sync-badge.idle   { color: var(--text-muted); border-color: var(--border); background: transparent; }
+  .sync-badge.dirty  { color: var(--warn); border-color: rgba(186,117,23,0.35); background: rgba(186,117,23,0.08); }
+  .sync-badge.synced { color: var(--accent); border-color: rgba(29,158,117,0.35); background: rgba(29,158,117,0.08); }
+
+  /* baris tombol kirim di bawah card */
+  .card-send-row {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .card-send-status {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+  }
+
+  .setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .setting-row:last-child { border-bottom: none; }
+  .setting-label { font-size: 13px; color: var(--text-primary); }
+  .setting-sub { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); margin-top: 1px; }
+  .setting-ctrl { display: flex; align-items: center; gap: 8px; }
+
+  input[type=range] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 80px; 
+    height: 4px;
+    border-radius: 2px;
+    background: var(--bg-hover);
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+  }
+
+  .val-badge { font-size: 12px; font-family: var(--font-mono); color: var(--accent); min-width: 36px; text-align: right; }
+
+  /* ── WEATHER ────────────────────────────────────── */
+  .weather-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+
+  .weather-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 16px;
+    text-align: center;
+  }
+
+  .weather-card.today { border-color: rgba(55,138,221,0.4); background: rgba(55,138,221,0.05); }
+  .w-day { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); margin-bottom: 8px; }
+  .w-today-label { font-size: 11px; color: var(--blue-400); font-family: var(--font-mono); margin-bottom: 8px; font-weight: 500; }
+  .w-icon { font-size: 26px; margin-bottom: 8px; line-height: 1; }
+  .w-temp { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--text-primary); }
+  .w-hum { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); margin-top: 4px; }
+  .w-cond { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+
+  /* ── HARVEST PAGE ───────────────────────────────── */
+  .harvest-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+
+  /* ── SENSOR PAGE ────────────────────────────────── */
+  .sensor-metrics { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; margin-bottom: 16px; }
+
+  /* ── SCROLLBAR ──────────────────────────────────── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+
+  /* ── CHART LEGEND ───────────────────────────────── */
+  .chart-legend { display: flex; gap: 16px; margin-bottom: 10px; flex-wrap: wrap; }
+  .cl-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono); }
+  .cl-dot { width: 10px; height: 3px; border-radius: 2px; display: inline-block; flex-shrink: 0; }
+
+  /* ── MINI SPARKLINE ─────────────────────────────── */
+  .mini-stat {
+    background: var(--bg-card2);
+    border-radius: var(--r-md);
+    padding: 10px;
+  }
+
+  .mini-stat-label { font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); margin-bottom: 4px; text-transform: uppercase; }
+  .mini-stat-val { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--text-primary); }
+  .mini-stat-unit { font-size: 11px; color: var(--text-secondary); font-weight: 400; }
+
+  /* ── SECTION DIVIDER ────────────────────────────── */
+  .section-div {
+    height: 1px;
+    background: var(--border);
+    margin: 16px 0;
+  }
+
+  /* animations */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .page.active { animation: fadeIn 0.25s ease; }
+
+  /* ── ENHANCED POLISH v10 ────────────────────────────── */
+  .topbar {
+    background: linear-gradient(180deg, #161F17 0%, var(--bg-card) 100%);
+    box-shadow: 0 1px 12px rgba(0,0,0,0.3);
+  }
+  .logo-mark {
+    box-shadow: 0 0 14px rgba(29,158,117,0.3);
+  }
+  .mc {
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+  }
+  .mc:hover {
+    border-color: var(--border-bright);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+  .mc::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(29,158,117,0.4), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .mc:hover::before { opacity: 1; }
+  .mc-bar-fill {
+    background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+    box-shadow: 0 0 6px rgba(29,158,117,0.3);
+  }
+  .card {
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .card:hover {
+    border-color: rgba(29,158,117,0.2);
+    box-shadow: 0 2px 16px rgba(0,0,0,0.15);
+  }
+  .zone-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    font-weight: 500;
+  }
+  .zp-ok { background: rgba(29,158,117,0.12); color: #5DCAA5; border: 1px solid rgba(29,158,117,0.3); }
+  .zp-warn { background: rgba(186,117,23,0.12); color: #EF9F27; border: 1px solid rgba(186,117,23,0.3); }
+  .zp-danger { background: rgba(226,75,74,0.12); color: #F09595; border: 1px solid rgba(226,75,74,0.3); }
+  .zone-params { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .zparam { font-size: 11px; font-family: var(--font-mono); color: var(--text-secondary); background: var(--bg-hover); padding: 2px 8px; border-radius: 4px; }
+  .zparam b { color: var(--text-primary); font-weight: 500; }
+  .zone-crop { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); margin-bottom: 8px; }
+  .alert-stack { display: flex; flex-direction: column; gap: 6px; }
+  .alert-row { transition: transform 0.1s; }
+  .alert-row:hover { transform: translateX(2px); }
+  .gauge-card {
+    background: linear-gradient(145deg, var(--bg-card), var(--bg-card2));
+    transition: border-color 0.2s, transform 0.15s;
+  }
+  .gauge-card:hover { border-color: var(--border-bright); transform: translateY(-1px); }
+  .pump-card { transition: border-color 0.2s, box-shadow 0.2s; }
+  .pump-card:hover { border-color: var(--border-bright); box-shadow: 0 2px 12px rgba(0,0,0,0.15); }
+  .weather-card { transition: border-color 0.2s, transform 0.15s; }
+  .weather-card:hover { border-color: var(--border-bright); transform: translateY(-2px); }
+  .sch-row { transition: background 0.15s; }
+  .sch-row:hover { background: var(--bg-hover) !important; }
+  .nav-item.active { position: relative; }
+  .nav-item.active::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 50%;
+    transform: translateY(-50%);
+    width: 3px; height: 16px;
+    background: var(--accent);
+    border-radius: 0 2px 2px 0;
+  }
+  .sidebar-farm { background: linear-gradient(145deg, rgba(29,158,117,0.08), rgba(29,158,117,0.03)); border-color: rgba(29,158,117,0.2); }
+  .nav-group + .nav-group { border-top: 1px solid var(--border); padding-top: 8px; }
+  .avatar { font-family: var(--font-display); font-weight: 600; transition: background 0.15s, transform 0.15s; }
+  .avatar:hover { background: var(--accent); transform: scale(1.06); }
+  .icon-btn:active { transform: scale(0.93); }
+  .page-hdr { padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .notif-badge { animation: badge-pulse 2.5s infinite; }
+  @keyframes badge-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(226,75,74,0.4); }
+    50% { box-shadow: 0 0 0 3px rgba(226,75,74,0); }
+  }
+  .data-table tr:hover td { background: rgba(29,158,117,0.04) !important; }
+  #harvest-progress-fill { background: linear-gradient(90deg, var(--accent-dim), var(--accent)) !important; box-shadow: 0 0 8px rgba(29,158,117,0.35); }
+  #weather-empty { border: 1px dashed rgba(29,158,117,0.2); }
+  .sync-badge { transition: all 0.25s; }
+  .page.active .mc { animation: slideUp 0.28s ease both; }
+  .page.active .card { animation: slideUp 0.28s ease both; }
+  .metrics-grid .mc:nth-child(1) { animation-delay: 0.02s; }
+  .metrics-grid .mc:nth-child(2) { animation-delay: 0.06s; }
+  .metrics-grid .mc:nth-child(3) { animation-delay: 0.10s; }
+  .metrics-grid .mc:nth-child(4) { animation-delay: 0.14s; }
+  .metrics-grid .mc:nth-child(5) { animation-delay: 0.18s; }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: none; }
+  }
+  input[type=text]:focus, input[type=date]:focus {
+    box-shadow: 0 0 0 2px rgba(29,158,117,0.15) !important;
+  }
+
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE — MOBILE & TABLET
+   Strategy:
+   - ≤768px  (portrait phone) : sidebar hidden → bottom nav
+   - 769–1024px (landscape / tablet) : sidebar icon-only 56px
+   - >1024px (desktop) : full sidebar 220px
+   ══════════════════════════════════════════════════════ */
+
+/* ── BOTTOM NAV (mobile only) ───────────────────────── */
+.bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 60px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  z-index: 200;
+  padding: 0 4px;
+  align-items: stretch;
+  justify-content: space-around;
+  gap: 0;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.35);
+}
+
+.bn-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex: 1;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 9px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
+  padding: 6px 2px;
+  border-radius: var(--r-sm);
+  transition: color 0.15s;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bn-item svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+.bn-item.active { color: var(--accent); }
+.bn-item.active svg { filter: drop-shadow(0 0 4px rgba(29,158,117,0.5)); }
+
+.bn-item .bn-badge {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  margin-left: 4px;
+  min-width: 14px; height: 14px;
+  border-radius: 7px;
+  background: var(--danger);
+  font-size: 8px;
+  font-weight: 700;
+  color: #fff;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  font-family: var(--font-mono);
+  border: 1.5px solid var(--bg-card);
+}
+
+/* ── TABLET: icon sidebar ───────────────────────────── */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .sidebar {
+    width: 56px;
+    overflow: hidden;
+    padding: 12px 0;
+  }
+  .sidebar-farm,
+  .nav-group-label,
+  .nav-badge,
+  .nav-item span:not(.nav-ico) { display: none !important; }
+  .nav-item {
+    justify-content: center;
+    padding: 10px;
+    gap: 0;
+    font-size: 0;
+    position: relative;
+  }
+  .nav-ico { width: 18px; height: 18px; opacity: 1; }
+  /* tooltip on hover */
+  .nav-item::after {
+    content: attr(data-label);
+    position: absolute;
+    left: calc(100% + 8px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--bg-card2);
+    border: 1px solid var(--border-bright);
+    color: var(--text-primary);
+    font-size: 11px;
+    font-family: var(--font-body);
+    padding: 4px 10px;
+    border-radius: var(--r-md);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 500;
+  }
+  .nav-item:hover::after { opacity: 1; }
+
+  .topbar-center { display: none; }
+  .main { padding: 16px; }
+  .metrics-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .two-col { grid-template-columns: 1fr; }
+  .two-equal { grid-template-columns: 1fr; }
+  .settings-grid { grid-template-columns: 1fr; }
+  .gauge-grid { grid-template-columns: repeat(2, 1fr); }
+  .harvest-metrics { grid-template-columns: repeat(2, 1fr); }
+  .weather-row { grid-template-columns: repeat(2, 1fr); }
+  .three-col { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+
+/* ── MOBILE PORTRAIT ≤768px ─────────────────────────── */
+@media (max-width: 768px) {
+  /* hide desktop sidebar */
+  .sidebar { display: none !important; }
+
+  /* show bottom nav */
+  .bottom-nav { display: flex; }
+
+  /* push content above bottom nav */
+  .main { padding: 14px 12px 76px; }
+
+  /* topbar slim */
+  .topbar { padding: 0 14px; height: 50px; }
+  .topbar-center { display: none; }
+  .logo-tag { display: none; }
+  .clock { font-size: 11px; }
+
+  /* page header tighter */
+  .page-hdr {
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+  }
+  .page-title { font-size: 18px; }
+  .hdr-btn { align-self: flex-start; font-size: 11px; padding: 6px 12px; }
+
+  /* metric grid: 2 cols on phone portrait */
+  .metrics-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; margin-bottom: 12px; }
+  .mc { padding: 12px; }
+  .mc-val { font-size: 22px; }
+
+  /* all multi-col → single col */
+  .two-col,
+  .two-equal,
+  .three-col,
+  .settings-grid { grid-template-columns: 1fr !important; }
+
+  .gauge-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .harvest-metrics { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .weather-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .sensor-metrics { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+
+  .pump-card { padding: 12px; }
+
+  /* cards tighter */
+  .card { padding: 14px; margin-bottom: 12px; }
+
+  /* zone card in zones page: single col */
+  .zone-grid { grid-template-columns: 1fr; }
+
+  /* chart heights slightly reduced */
+  .chart-wrap[style*="height:220px"] { height: 180px !important; }
+  .chart-wrap[style*="height:180px"] { height: 160px !important; }
+
+  /* table horizontal scroll */
+  .data-table { font-size: 11px; }
+  .data-table th, .data-table td { padding: 7px 8px; }
+
+  /* weather cards */
+  .weather-card { padding: 12px; }
+  .w-icon { font-size: 22px; }
+  .w-temp { font-size: 17px; }
+
+  /* settings range wider */
+  input[type=range] { width: 100px; }
+
+  /* harvest grid inline override */
+  #page-harvest .harvest-metrics { grid-template-columns: repeat(2,1fr) !important; }
+
+  /* zones page zone card inline grid override */
+  #page-zones .card [style*="grid-template-columns:2fr 1fr"] { grid-template-columns: 1fr !important; }
+  #page-zones .card [style*="grid-template-columns:repeat(3,1fr)"] { grid-template-columns: repeat(2,1fr) !important; }
+
+  /* ── Inline grid overrides for mobile ── */
+  .resp-2fr-1fr { grid-template-columns: 1fr !important; }
+  .sensor-metrics { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+  /* Harvest bottom two-grid */
+  #page-harvest > div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+  /* Mini-stat 3-col inside zone card */
+  .card [style*="grid-template-columns:repeat(3,1fr);gap:8px"] { grid-template-columns: repeat(2,1fr) !important; }
+  /* Weather search wrap */
+  .card > div > #city-input { font-size: 14px; }
+  /* Harvest locked grid: 2 cols on small phones */
+  #harvest-locked-view > div:first-child { grid-template-columns: repeat(2, 1fr) !important; }
+  /* WA input row */
+  .card [style*="gap:8px;margin-bottom:12px"] { flex-wrap: wrap; }
+  /* Sensor detail card inline grid for 3-col mini */
+  .card [style*="grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px"] { grid-template-columns: repeat(2,1fr) !important; }
+}
+
+/* ── MOBILE LANDSCAPE ≤768px height ────────────────── */
+@media (max-height: 500px) and (orientation: landscape) {
+  .main { padding: 10px 14px 70px; }
+  .topbar { height: 44px; }
+  .bottom-nav { height: 52px; }
+  .page-title { font-size: 16px; }
+  .metrics-grid { grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
+  .mc-val { font-size: 20px; }
+  .mc { padding: 10px; }
+  .gauge-grid { grid-template-columns: repeat(4, 1fr); }
+  .harvest-metrics { grid-template-columns: repeat(4, 1fr); }
+  .weather-row { grid-template-columns: repeat(4, 1fr); }
+  .two-col { grid-template-columns: 1fr 1fr; }
+  .two-equal { grid-template-columns: 1fr 1fr; }
+  .three-col { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .settings-grid { grid-template-columns: 1fr 1fr; }
+}
+
+
+
+  /* ── ADDITIONAL RESPONSIVE HELPERS ─────────────────── */
+  .sensor-metrics {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0,1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  /* Zones page 2-col detail */
+  .resp-2fr-1fr { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+
+  /* Harvest locked view - grid wraps naturally */
+
+  /* Settings input row mobile fix */
+  .setting-ctrl { flex-wrap: wrap; gap: 6px; }
+
+  /* Weather search button full width on small */
+  #city-input { min-width: 0; }
+
+  /* Better touch targets */
+  .toggle { min-width: 38px; }
+  .bn-item { min-height: 44px; }
+  .nav-item { min-height: 36px; }
+
+</style>
+</head>
+<body>
+
+<!-- ── TOPBAR ────────────────────────────────────── -->
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 18 18" fill="none">
+        <path d="M9 2C6.5 5.5 4 7.5 4 11a5 5 0 0010 0c0-3.5-2.5-5.5-5-9z" fill="#E1F5EE"/>
+        <path d="M9 6v8M6 10c1 0 3-1 3-1" stroke="#085041" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-name">HydroSense</div>
+      <div class="logo-tag">MELON FARM v1.0</div>
+    </div>
+  </div>
+
+  <div class="topbar-center">
+    <div class="sys-pill">
+      <div class="pulse" id="mqtt-dot"></div>
+      <span id="mqtt-status-text">Menghubungkan ke MQTT...</span>
+    </div>
+  </div>
+
+  <div class="topbar-right">
+    <span class="clock" id="clock">--:--:--</span>
+    <button class="icon-btn" onclick="showPage('alerts')">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M8 1a5 5 0 00-5 5v3l-1 2h12l-1-2V6a5 5 0 00-5-5z"/><path d="M6.5 13.5a1.5 1.5 0 003 0" stroke-linecap="round"/></svg>
+      <div class="notif-badge"></div>
+    </button>
+    <button class="icon-btn" onclick="showPage('settings')">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.2 3.2l1 1M11.8 11.8l1 1M3.2 12.8l1-1M11.8 4.2l1-1"/></svg>
+    </button>
+    <div class="avatar">AD</div>
+  </div>
+</div>
+
+<!-- ── APP LAYOUT ────────────────────────────────── -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="nav-group">
+      <div class="nav-group-label">Utama</div>
+      <div class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')" data-label="Dashboard">
+        <svg class="nav-ico" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" id="nav-zones" onclick="showPage('zones')" data-label="Zona Tanam">
+        <svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M8 2C5.5 5 3.5 7 3.5 10a4.5 4.5 0 009 0C12.5 7 10.5 5 8 2z"/></svg>
+        Zona Tanam
+      </div>
+      <div class="nav-item" id="nav-sensors" onclick="showPage('sensors')" data-label="Sensor">
+        <svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.3 3.3l1.4 1.4M11.3 11.3l1.4 1.4M3.3 12.7l1.4-1.4M11.3 4.7l1.4-1.4"/></svg>
+        Sensor
+      </div>
+      <div class="nav-item" id="nav-pumps" onclick="showPage('pumps')" data-label="Pompa">
+        <svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="1.5" y="5" width="8" height="7" rx="1.5"/><path d="M9.5 8.5h2a2.5 2.5 0 000-5H7.5M4.5 8.5V8"/><circle cx="5" cy="9.5" r="1.5" fill="currentColor" stroke="none" opacity="0.4"/></svg>
+        Pompa & Irigasi
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">Analitik</div>
+      <div class="nav-item" id="nav-analytics" onclick="showPage('analytics')" data-label="Grafik & Tren">
+        <svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M2 12l3-4 3 2 3-5.5 3 2.5"/></svg>
+        Grafik & Tren
+      </div>
+      <div class="nav-item" id="nav-harvest" onclick="showPage('harvest')" data-label="Panen">
+        <svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M2.5 14l1.8-5h7.4l1.8 5H2.5z"/><path d="M5.5 9V6.5a2.5 2.5 0 015 0V9"/><path d="M8 4V2"/></svg>
+        Panen
+      </div>
+      <div class="nav-item" id="nav-weather" onclick="showPage('weather')" data-label="Cuaca">
+        <svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M4.5 11a3.5 3.5 0 116.6-1.6A2.5 2.5 0 1112 13H4a2.5 2.5 0 010-5z"/></svg>
+        Cuaca
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">Sistem</div>
+      <div class="nav-item" id="nav-alerts" onclick="showPage('alerts')" data-label="Notifikasi">
+        <svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M8 1a5 5 0 00-5 5v3l-1 2h12l-1-2V6a5 5 0 00-5-5z"/><path d="M6.5 13.5a1.5 1.5 0 003 0" stroke-linecap="round"/></svg>
+        Notifikasi
+        <span class="nav-badge">3</span>
+      </div>
+      <div class="nav-item" id="nav-settings" onclick="showPage('settings')" data-label="Pengaturan">
+        <svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.2 3.2l1 1M11.8 11.8l1 1M3.2 12.8l1-1M11.8 4.2l1-1"/></svg>
+        Pengaturan
+      </div>
+    </div>
+
+    <div class="sidebar-farm">
+      <div class="farm-name">🍈 Kebun Melon Hidroponik</div>
+      <div class="farm-loc">1 Zona Aktif · Cucumis melo</div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+
+    <!-- ═══════════ PAGE: DASHBOARD ═══════════ -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-hdr">
+        <div>
+          <div class="page-title">Dashboard Utama</div>
+          <div class="page-sub" id="dashboard-date-sub">Memuat...</div>
+        </div>
+        <button class="hdr-btn">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 8a7 7 0 1014 0" stroke-linecap="round"/><path d="M12 4l3 1-1 3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Refresh data
+        </button>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="mc">
+          <div class="mc-top">
+            <span class="mc-label">Suhu Air</span>
+            <div class="mc-ico" style="background:rgba(55,138,221,0.15)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="#378ADD"><path d="M8 1a2 2 0 00-2 2v6a3 3 0 104 0V3a2 2 0 00-2-2z"/></svg>
+            </div>
+          </div>
+          <div><span class="mc-val" id="d-temp">--</span><span class="mc-unit">°C</span></div>
+          <div class="mc-trend trend-ok" id="d-temp-trend">menunggu data...</div>
+          <div class="mc-bar"><div class="mc-bar-fill" id="d-temp-bar" style="width:0%"></div></div>
+        </div>
+        <div class="mc">
+          <div class="mc-top">
+            <span class="mc-label">Suhu Ruangan</span>
+            <div class="mc-ico" style="background:rgba(226,75,74,0.12)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="#E24B4A"><path d="M8 1a2 2 0 00-2 2v6a3 3 0 104 0V3a2 2 0 00-2-2z"/></svg>
+            </div>
+          </div>
+          <div><span class="mc-val" id="d-suhu-ruang">--</span><span class="mc-unit">°C</span></div>
+          <div class="mc-trend trend-ok" id="d-suhu-ruang-trend">menunggu data...</div>
+          <div class="mc-bar"><div class="mc-bar-fill" id="d-suhu-ruang-bar" style="width:0%;background:#E24B4A"></div></div>
+        </div>
+        <div class="mc">
+          <div class="mc-top">
+            <span class="mc-label">pH Air</span>
+            <div class="mc-ico" style="background:rgba(29,158,117,0.15)">
+              <svg width="14" height="14" viewBox="0 0 14 14"><text x="0" y="11" font-size="9" font-weight="700" fill="#1D9E75">pH</text></svg>
+            </div>
+          </div>
+          <div><span class="mc-val" id="d-ph">--</span></div>
+          <div class="mc-trend trend-ok" id="d-ph-trend">menunggu data...</div>
+          <div class="mc-bar"><div class="mc-bar-fill" id="d-ph-bar" style="width:0%;background:#1D9E75"></div></div>
+        </div>
+        <div class="mc">
+          <div class="mc-top">
+            <span class="mc-label">TDS / Nutrisi</span>
+            <div class="mc-ico" style="background:rgba(186,117,23,0.15)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="#BA7517"><path d="M8 2C6 5 4 7 4 10a4 4 0 008 0c0-3-2-5-4-8z"/></svg>
+            </div>
+          </div>
+          <div><span class="mc-val" id="d-tds">--</span><span class="mc-unit">ppm</span></div>
+          <div class="mc-trend trend-ok" id="d-tds-trend">menunggu data...</div>
+          <div class="mc-bar"><div class="mc-bar-fill" id="d-tds-bar" style="width:0%;background:#BA7517"></div></div>
+        </div>
+        <div class="mc">
+          <div class="mc-top">
+            <span class="mc-label">Kelembapan Tanah</span>
+            <div class="mc-ico" style="background:rgba(127,119,221,0.15)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="#7F77DD"><path d="M8 2C6 5 4 7 4 10a4 4 0 008 0c0-3-2-5-4-8z"/></svg>
+            </div>
+          </div>
+          <div><span class="mc-val" id="d-hum">--</span><span class="mc-unit">%</span></div>
+          <div class="mc-trend trend-ok" id="d-hum-trend">menunggu data...</div>
+          <div class="mc-bar"><div class="mc-bar-fill" id="d-hum-bar" style="width:0%;background:#7F77DD"></div></div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">Zona Tanam Aktif</div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div class="zone-card active" style="cursor:default;border-color:rgba(29,158,117,0.4)">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                <div class="zone-name" style="font-size:14px">🍈 Zona Utama — Melon Hidroponik</div>
+                <div class="zone-pill zp-ok" style="margin:0">● Normal</div>
+              </div>
+              <div class="zone-crop" style="margin-bottom:10px">Melon (Cucumis melo) · 1 zona aktif</div>
+              <div class="zone-params" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+                <span class="zparam">Fase: <b>Vegetatif</b></span>
+                <span class="zparam">Hari ke-<b>32</b></span>
+                <span class="zparam">Panen <b>~28 hari</b></span>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+              <div class="mini-stat"><div class="mini-stat-label">pH Optimal</div><div class="mini-stat-val">5.5–6.5</div></div>
+              <div class="mini-stat"><div class="mini-stat-label">TDS Optimal</div><div class="mini-stat-val" style="font-size:14px">1500–2500<span class="mini-stat-unit"> ppm</span></div></div>
+              <div class="mini-stat"><div class="mini-stat-label">Suhu Air</div><div class="mini-stat-val">18–26<span class="mini-stat-unit">°C</span></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Notifikasi Terbaru</div>
+          <div class="alert-stack">
+            <div class="alert-row ar-ok">
+              <div class="ar-dot" style="background:#1D9E75"></div>
+              <div>
+                <div class="ar-msg">Semua parameter sensor dalam batas normal</div>
+                <div class="ar-time">Baru saja</div>
+              </div>
+            </div>
+            <div class="alert-row ar-info">
+              <div class="ar-dot" style="background:#378ADD"></div>
+              <div>
+                <div class="ar-msg">Melon memasuki fase vegetatif hari ke-32</div>
+                <div class="ar-time">1 jam lalu</div>
+              </div>
+            </div>
+            <div class="alert-row ar-warn">
+              <div class="ar-dot" style="background:#BA7517"></div>
+              <div>
+                <div class="ar-msg">Cek kelembapan tanah — pastikan >40%</div>
+                <div class="ar-time">2 jam lalu</div>
+              </div>
+            </div>
+            <div class="alert-row ar-ok">
+              <div class="ar-dot" style="background:#1D9E75"></div>
+              <div>
+                <div class="ar-msg">Jadwal irigasi pagi selesai (8 mnt)</div>
+                <div class="ar-time">32 menit lalu</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Tren sensor real-time (ESP32 via MQTT)</div>
+        <div class="chart-legend">
+          <span class="cl-item"><span class="cl-dot" style="background:#378ADD"></span>Suhu Air (°C)</span>
+          <span class="cl-item"><span class="cl-dot" style="background:#E24B4A"></span>Suhu Ruangan (°C)</span>
+          <span class="cl-item"><span class="cl-dot" style="background:#1D9E75"></span>pH</span>
+          <span class="cl-item"><span class="cl-dot" style="background:#BA7517"></span>TDS /100 (ppm)</span>
+          <span class="cl-item"><span class="cl-dot" style="background:#7F77DD"></span>Kelembapan Tanah (%)</span>
+        </div>
+        <div class="chart-wrap" style="height:220px"><canvas id="trendChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ═══════════ PAGE: ZONES ═══════════ -->
+    <div class="page" id="page-zones">
+      <div class="page-hdr">
+        <div>
+          <div class="page-title">Zona Tanam Melon</div>
+          <div class="page-sub">1 zona aktif · sistem hidroponik · Cucumis melo</div>
+        </div>
+      </div>
+
+      <div class="gauge-grid">
+        <div class="gauge-card">
+          <div class="gauge-label">Suhu Air</div>
+          <svg viewBox="0 0 110 70" width="120" style="display:block;margin:0 auto 2px">
+            <path d="M10 62 A45 45 0 0 1 100 62" fill="none" stroke="#1E281E" stroke-width="9" stroke-linecap="round"/>
+            <path id="gauge-arc-suhu-air" d="M10 62 A45 45 0 0 1 100 62" fill="none" stroke="#378ADD" stroke-width="9" stroke-linecap="round" stroke-dasharray="141.4" stroke-dashoffset="141.4" style="transition:stroke-dashoffset 0.6s cubic-bezier(.4,0,.2,1),stroke 0.4s"/>
+            <text id="gauge-minlabel-suhu-air" x="7" y="70" font-size="8" fill="#4A604A" font-family="'DM Mono',monospace">0</text>
+            <text id="gauge-maxlabel-suhu-air" x="97" y="70" font-size="8" fill="#4A604A" font-family="'DM Mono',monospace" text-anchor="end">100</text>
+          </svg>
+          <div class="gauge-val" id="zone-suhu-air">--<span class="gauge-unit">°C</span></div>
+        </div>
+        <div class="gauge-card">
+          <div class="gauge-label">pH Air</div>
+          <svg viewBox="0 0 110 70" width="120" style="display:block;margin:0 auto 2px">
+            <path d="M10 62 A45 45 0 0 1 100 62" fill="none" stroke="#1E281E" stroke-width="9" stroke-linecap="round"/>
+            <path id="gauge-arc-ph" d="M10 62 A45 45 0 0 1 100 62" fill="none" stroke="#1D9E75" stroke-width="9" stroke-linecap="round" stroke-dasharray="141.4" stroke-dashoffset="141.4" style="transition:stroke-dashoffset 0.6s cubic-bezier(.4,0,.2,1),stroke 0.4s"/>
+            <text x="7" y="70" font-size="8" fill="#4A604A" font-family="'DM Mono',monospace">0</text>
+            <text x="97" y="70" font-size="8" fill="#4A604A" font-family="'DM Mono',monospace" text-anchor="end">20</text>
+          </svg>
+          <div class="gauge-val" id="zone-ph">--<span class="gauge-unit"> pH</span></div>
+        </div>
+        <div class="gauge-card">
+          <div class="gauge-label">TDS Nutrisi</div>
+          <svg viewBox="0 0 110 70" width="120" style="display:block;margin:0 auto 2px">
+            <path d="M10 62 A45 45 0 0 1 100 62" fill="none" stroke="#1E281E" stroke-width="9" stroke-linecap="round"/>
+            <path id="gauge-arc-tds" d="M10 62 A45 45 0 0 1 100 62" fill="none" stroke="#BA7517" stroke-width="9" stroke-linecap="round" stroke-dasharray="141.4" stroke-dashoffset="141.4" style="transition:stroke-dashoffset 0.6s cubic-bezier(.4,0,.2,1),stroke 0.4s"/>
+            <text x="7" y="70" font-size="8" fill="#4A604A" font-family="'DM Mono',monospace">0</text>
+            <text x="97" y="70" font-size="8" fill="#4A604A" font-family="'DM Mono',monospace" text-anchor="end">3000</text>
+          </svg>
+          <div class="gauge-val" id="zone-tds">--<span class="gauge-unit"> ppm</span></div>
+        </div>
+        <div class="gauge-card">
+          <div class="gauge-label">Kelembapan Tanah</div>
+          <svg viewBox="0 0 110 70" width="120" style="display:block;margin:0 auto 2px">
+            <path d="M10 62 A45 45 0 0 1 100 62" fill="none" stroke="#1E281E" stroke-width="9" stroke-linecap="round"/>
+            <path id="gauge-arc-kelembapan" d="M10 62 A45 45 0 0 1 100 62" fill="none" stroke="#7F77DD" stroke-width="9" stroke-linecap="round" stroke-dasharray="141.4" stroke-dashoffset="141.4" style="transition:stroke-dashoffset 0.6s cubic-bezier(.4,0,.2,1),stroke 0.4s"/>
+            <text x="7" y="70" font-size="8" fill="#4A604A" font-family="'DM Mono',monospace">0</text>
+            <text x="97" y="70" font-size="8" fill="#4A604A" font-family="'DM Mono',monospace" text-anchor="end">100</text>
+          </svg>
+          <div class="gauge-val" id="zone-kelembapan">--<span class="gauge-unit"> %</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🍈 Zona Utama — Melon Hidroponik (Cucumis melo)</div>
+        <div class="resp-2fr-1fr" style="display:grid;grid-template-columns:2fr 1fr;gap:16px">
+          <div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+              <div class="mini-stat"><div class="mini-stat-label">Suhu Air</div><div class="mini-stat-val" id="zm-suhu-air">--<span class="mini-stat-unit">°C</span></div></div>
+              <div class="mini-stat"><div class="mini-stat-label">Suhu Ruangan</div><div class="mini-stat-val" id="zm-suhu-ruang">--<span class="mini-stat-unit">°C</span></div></div>
+              <div class="mini-stat"><div class="mini-stat-label">pH Air</div><div class="mini-stat-val" id="zm-ph">--</div></div>
+              <div class="mini-stat"><div class="mini-stat-label">TDS</div><div class="mini-stat-val" id="zm-tds">--<span class="mini-stat-unit"> ppm</span></div></div>
+              <div class="mini-stat"><div class="mini-stat-label">Kelembapan</div><div class="mini-stat-val" id="zm-kelembapan">--<span class="mini-stat-unit">%</span></div></div>
+              <div class="mini-stat" style="background:rgba(29,158,117,0.08);border:1px solid rgba(29,158,117,0.2)"><div class="mini-stat-label" style="color:var(--accent)">Status</div><div class="mini-stat-val" style="font-size:13px;color:#5DCAA5" id="zm-status">Menunggu...</div></div>
+            </div>
+            <div class="zone-pill zp-ok" id="zm-pill">● Menunggu data sensor...</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);text-transform:uppercase;margin-bottom:10px">Fase Pertumbuhan</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--r-md);background:rgba(29,158,117,0.08);border:1px solid rgba(29,158,117,0.2)">
+                <span style="font-size:16px">🌱</span>
+                <div><div style="font-size:11px;font-weight:600;color:#5DCAA5">Semai</div><div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono)">Hari 1–10</div></div>
+                <span style="margin-left:auto;font-size:10px;color:var(--accent);font-family:var(--font-mono)">✓ Selesai</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--r-md);background:rgba(29,158,117,0.08);border:1px solid rgba(29,158,117,0.2)">
+                <span style="font-size:16px">🌿</span>
+                <div><div style="font-size:11px;font-weight:600;color:#5DCAA5">Vegetatif</div><div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono)">Hari 11–40</div></div>
+                <span style="margin-left:auto;font-size:10px;color:#BA7517;font-family:var(--font-mono)">Hari ke-32</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--r-md);border:1px solid var(--border)">
+                <span style="font-size:16px;opacity:0.4">🌸</span>
+                <div><div style="font-size:11px;font-weight:600;color:var(--text-muted)">Pembungaan</div><div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono)">Hari 41–55</div></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--r-md);border:1px solid var(--border)">
+                <span style="font-size:16px;opacity:0.4">🍈</span>
+                <div><div style="font-size:11px;font-weight:600;color:var(--text-muted)">Pembuahan</div><div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono)">Hari 56–90</div></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--r-md);border:1px solid var(--border)">
+                <span style="font-size:16px;opacity:0.4">🏆</span>
+                <div><div style="font-size:11px;font-weight:600;color:var(--text-muted)">Panen</div><div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono)">Hari ~90–100</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Parameter optimal melon per fase</div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>Fase</th><th>pH</th><th>TDS (ppm)</th><th>Suhu Air</th><th>Kelembapan</th><th>Catatan</th></tr></thead>
+            <tbody>
+              <tr><td>Semai (1–10 hr)</td><td>5.8–6.2</td><td>400–600</td><td>22–26°C</td><td>70–80%</td><td style="color:var(--text-secondary)">Larutan nutrisi encer, cahaya sedang 8–10 jam/hari. Fokus perkecambahan akar, hindari larutan terlalu pekat agar bibit tidak stres.</td></tr>
+              <tr style="background:rgba(29,158,117,0.05);border-left:2px solid var(--accent)"><td><b style="color:#5DCAA5">Vegetatif (11–40 hr) ← Saat ini</b></td><td>5.5–6.5</td><td>1500–2000</td><td>20–26°C</td><td>60–70%</td><td style="color:var(--text-secondary)">Tingkatkan N (Nitrogen) — unsur utama pembentuk daun, batang, dan klorofil. Pastikan drainase lancar agar akar tidak busuk.</td></tr>
+              <tr><td>Pembungaan (41–55 hr)</td><td>5.5–6.0</td><td>1800–2200</td><td>20–25°C</td><td>55–65%</td><td style="color:var(--text-secondary)">Kurangi N (Nitrogen) agar pertumbuhan vegetatif melambat. Tingkatkan P (Fosfor) untuk merangsang pembungaan, dan K (Kalium) untuk memperkuat tangkai bunga.</td></tr>
+              <tr><td>Pembuahan (56–90 hr)</td><td>5.5–6.2</td><td>2000–2500</td><td>18–24°C</td><td>50–60%</td><td style="color:var(--text-secondary)">Tingkatkan K (Kalium) untuk memperbesar buah, meningkatkan rasa manis, dan ketahanan simpan. Batasi N agar buah tidak berair berlebihan. Jaga suhu stabil 18–24°C.</td></tr>
+              <tr><td>Panen (~90–100 hr)</td><td>5.5–6.5</td><td>1800–2000</td><td>18–26°C</td><td>50–60%</td><td style="color:var(--text-secondary)">Kurangi air 7 hari sebelum panen untuk meningkatkan kadar gula (Brix). Hentikan nutrisi 2–3 hari sebelum panen agar rasa lebih manis dan aroma optimal.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ PAGE: SENSORS ═══════════ -->
+    <div class="page" id="page-sensors">
+      <div class="page-hdr">
+        <div>
+          <div class="page-title">Monitor Sensor ESP32</div>
+          <div class="page-sub">5 sensor aktif · data real-time via MQTT</div>
+        </div>
+      </div>
+
+      <div class="sensor-metrics">
+        <div class="mc">
+          <div class="mc-top"><span class="mc-label">Suhu Air</span>
+            <div class="mc-ico" style="background:rgba(55,138,221,0.15)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="#378ADD"><path d="M8 1a2 2 0 00-2 2v6a3 3 0 104 0V3a2 2 0 00-2-2z"/></svg>
+            </div>
+          </div>
+          <div><span class="mc-val" id="s-suhu-air">--</span><span class="mc-unit">°C</span></div>
+          <div class="mc-trend" id="s-suhu-air-status">menunggu...</div>
+        </div>
+        <div class="mc">
+          <div class="mc-top"><span class="mc-label">Suhu Ruangan</span>
+            <div class="mc-ico" style="background:rgba(226,75,74,0.12)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="#E24B4A"><path d="M8 1a2 2 0 00-2 2v6a3 3 0 104 0V3a2 2 0 00-2-2z"/></svg>
+            </div>
+          </div>
+          <div><span class="mc-val" id="s-suhu-ruang">--</span><span class="mc-unit">°C</span></div>
+          <div class="mc-trend" id="s-suhu-ruang-status">menunggu...</div>
+        </div>
+        <div class="mc">
+          <div class="mc-top"><span class="mc-label">pH Air</span>
+            <div class="mc-ico" style="background:rgba(29,158,117,0.15)">
+              <svg width="14" height="14" viewBox="0 0 14 14"><text x="0" y="11" font-size="9" font-weight="700" fill="#1D9E75">pH</text></svg>
+            </div>
+          </div>
+          <div><span class="mc-val" id="s-ph">--</span></div>
+          <div class="mc-trend" id="s-ph-status">menunggu...</div>
+        </div>
+        <div class="mc">
+          <div class="mc-top"><span class="mc-label">TDS / Nutrisi</span>
+            <div class="mc-ico" style="background:rgba(186,117,23,0.15)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="#BA7517"><path d="M8 2C6 5 4 7 4 10a4 4 0 008 0c0-3-2-5-4-8z"/></svg>
+            </div>
+          </div>
+          <div><span class="mc-val" id="s-tds">--</span><span class="mc-unit">ppm</span></div>
+          <div class="mc-trend" id="s-tds-status">menunggu...</div>
+        </div>
+        <div class="mc">
+          <div class="mc-top"><span class="mc-label">Kelembapan Tanah</span>
+            <div class="mc-ico" style="background:rgba(127,119,221,0.15)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="#7F77DD"><path d="M8 2C6 5 4 7 4 10a4 4 0 008 0c0-3-2-5-4-8z"/></svg>
+            </div>
+          </div>
+          <div><span class="mc-val" id="s-kelembapan">--</span><span class="mc-unit">%</span></div>
+          <div class="mc-trend" id="s-kelembapan-status">menunggu...</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Status sensor ESP32 · iot/soccer/sensor</div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead>
+              <tr><th>Sensor</th><th>Variabel</th><th>Nilai Terakhir</th><th>Range Normal</th><th>Status</th><th>Update</th></tr>
+            </thead>
+            <tbody id="sensor-table-body">
+              <tr><td>TEMP-AIR</td><td>SuhuAir</td><td id="t-suhu-air">--</td><td>18–26 °C</td><td id="t-suhu-air-pill"><span class="pill pill-blue">Menunggu</span></td><td id="t-suhu-air-time">--</td></tr>
+              <tr><td>TEMP-ROOM</td><td>SuhuRuangan</td><td id="t-suhu-ruang">--</td><td>18–35 °C</td><td id="t-suhu-ruang-pill"><span class="pill pill-blue">Menunggu</span></td><td id="t-suhu-ruang-time">--</td></tr>
+              <tr><td>PH-01</td><td>Ph</td><td id="t-ph">--</td><td>5.5–6.5</td><td id="t-ph-pill"><span class="pill pill-blue">Menunggu</span></td><td id="t-ph-time">--</td></tr>
+              <tr><td>TDS-01</td><td>TDS</td><td id="t-tds">--</td><td>800–1500 ppm</td><td id="t-tds-pill"><span class="pill pill-blue">Menunggu</span></td><td id="t-tds-time">--</td></tr>
+              <tr><td>SOIL-01</td><td>KelembapanTanah</td><td id="t-kelembapan">--</td><td>40–80 %</td><td id="t-kelembapan-pill"><span class="pill pill-blue">Menunggu</span></td><td id="t-kelembapan-time">--</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Grafik real-time sensor</div>
+        <div class="chart-legend">
+          <span class="cl-item"><span class="cl-dot" style="background:#378ADD"></span>Suhu Air</span>
+          <span class="cl-item"><span class="cl-dot" style="background:#E24B4A"></span>Suhu Ruangan</span>
+          <span class="cl-item"><span class="cl-dot" style="background:#1D9E75"></span>pH</span>
+          <span class="cl-item"><span class="cl-dot" style="background:#BA7517"></span>TDS/100</span>
+          <span class="cl-item"><span class="cl-dot" style="background:#7F77DD"></span>Kelembapan</span>
+        </div>
+        <div class="chart-wrap" style="height:220px"><canvas id="sensorDetailChart"></canvas></div>
+      </div>
+
+    </div>
+
+    <!-- ═══════════ PAGE: PUMPS ═══════════ -->
+    <div class="page" id="page-pumps">
+      <div class="page-hdr">
+        <div>
+          <div class="page-title">Pompa & Irigasi</div>
+          <div class="page-sub">Kontrol manual dan jadwal otomatis</div>
+        </div>
+      </div>
+
+      <div class="three-col">
+        <div class="pump-card">
+          <div class="pump-hdr">
+            <div class="pump-name">Pompa Utama A</div>
+            <button class="toggle on" id="pump1" onclick="toggleSwitch('pump1','pump1-stat')"></button>
+          </div>
+          <div class="pump-stat">Status: <b id="pump1-stat">Aktif</b></div>
+          <div class="pump-stat">Debit: <b>2.4 L/menit</b></div>
+          <div class="pump-stat">Tekanan: <b>1.2 bar</b></div>
+          <div class="pump-stat">Runtime hari ini: <b>4j 32m</b></div>
+          <div class="pump-bar"><div class="pump-fill" style="width:72%"></div></div>
+        </div>
+        <div class="pump-card">
+          <div class="pump-hdr">
+            <div class="pump-name">Pompa Sirkulasi B</div>
+            <button class="toggle on" id="pump2" onclick="toggleSwitch('pump2','pump2-stat')"></button>
+          </div>
+          <div class="pump-stat">Status: <b id="pump2-stat">Aktif</b></div>
+          <div class="pump-stat">Debit: <b>1.8 L/menit</b></div>
+          <div class="pump-stat">Tekanan: <b>0.9 bar</b></div>
+          <div class="pump-stat">Runtime hari ini: <b>6j 12m</b></div>
+          <div class="pump-bar"><div class="pump-fill" style="width:58%"></div></div>
+        </div>
+        <div class="pump-card">
+          <div class="pump-hdr">
+            <div class="pump-name">Pompa Nutrisi C</div>
+            <button class="toggle off" id="pump3" onclick="toggleSwitch('pump3','pump3-stat')"></button>
+          </div>
+          <div class="pump-stat">Status: <b id="pump3-stat">Nonaktif</b></div>
+          <div class="pump-stat">Debit: <b>0.6 L/menit</b></div>
+          <div class="pump-stat">Tekanan: <b>— bar</b></div>
+          <div class="pump-stat">Runtime hari ini: <b>1j 05m</b></div>
+          <div class="pump-bar"><div class="pump-fill" style="width:20%;background:#2A3A2A"></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Jadwal irigasi hari ini</div>
+        <div class="sch-list" id="schedule-list">
+          <!-- diisi oleh JS renderSchedule() -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ PAGE: ANALYTICS ═══════════ -->
+    <div class="page" id="page-analytics">
+      <div class="page-hdr">
+        <div>
+          <div class="page-title">Grafik & Tren</div>
+          <div class="page-sub">Analitik 7 hari terakhir</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">pH harian — Zona A</div>
+        <div class="chart-legend">
+          <span class="cl-item"><span class="cl-dot" style="background:#378ADD"></span>Rata-rata pH harian (akumulasi per jam ÷ 24)</span>
+        </div>
+        <div class="chart-wrap" style="height:220px"><canvas id="phChart"></canvas></div>
+        <div id="ph-chart-empty" style="text-align:center;padding:12px 0;font-size:12px;color:var(--text-muted);font-family:var(--font-mono)">Menunggu data real-time dari MQTT...</div>
+      </div>
+
+      <div class="two-equal">
+        <div class="card">
+          <div class="card-title">Konsumsi air (L/hari)</div>
+          <div class="chart-wrap" style="height:180px"><canvas id="waterChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Konsumsi nutrisi (ppm avg/hari)</div>
+          <div class="chart-wrap" style="height:180px"><canvas id="nutChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Produksi biomassa (g/hari estimasi)</div>
+        <div class="chart-wrap" style="height:180px"><canvas id="bioChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ═══════════ PAGE: HARVEST ═══════════ -->
+    <div class="page" id="page-harvest">
+      <div class="page-hdr">
+        <div>
+          <div class="page-title">Catatan Panen Melon</div>
+          <div class="page-sub">Riwayat dan proyeksi panen · Cucumis melo hidroponik</div>
+        </div>
+      </div>
+
+      <!-- Harvest Date Input Card -->
+      <div class="card" id="harvest-date-card" style="margin-bottom:16px">
+        <div class="card-title">Periode Panen</div>
+        <div id="harvest-locked-view" style="display:none">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px">
+            <div style="background:rgba(29,158,117,0.08);border:1px solid rgba(29,158,117,0.25);border-radius:var(--r-md);padding:10px 14px">
+              <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);text-transform:uppercase;margin-bottom:3px">Mulai Panen</div>
+              <div id="locked-mulai" style="font-family:var(--font-display);font-size:14px;font-weight:600;color:#5DCAA5"></div>
+            </div>
+            <div style="background:rgba(29,158,117,0.08);border:1px solid rgba(29,158,117,0.25);border-radius:var(--r-md);padding:10px 14px">
+              <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);text-transform:uppercase;margin-bottom:3px">Estimasi Selesai</div>
+              <div id="locked-selesai" style="font-family:var(--font-display);font-size:14px;font-weight:600;color:#5DCAA5"></div>
+            </div>
+            <div style="background:rgba(186,117,23,0.08);border:1px solid rgba(186,117,23,0.2);border-radius:var(--r-md);padding:10px 14px">
+              <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);text-transform:uppercase;margin-bottom:3px">Durasi</div>
+              <div style="font-family:var(--font-display);font-size:14px;font-weight:600;color:#EF9F27">85 hari</div>
+            </div>
+            <div style="background:rgba(55,138,221,0.08);border:1px solid rgba(55,138,221,0.2);border-radius:var(--r-md);padding:10px 14px">
+              <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);text-transform:uppercase;margin-bottom:3px">Sisa Hari</div>
+              <div id="locked-sisa" style="font-family:var(--font-display);font-size:14px;font-weight:600;color:#378ADD"></div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:12px">
+            <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)">🔒 Terkunci sampai panen selesai</span>
+            <button onclick="selesaikanPanen()" style="padding:7px 14px;background:rgba(226,75,74,0.1);border:1px solid rgba(226,75,74,0.3);border-radius:var(--r-md);color:#E24B4A;font-size:12px;cursor:pointer;font-family:var(--font-body)">Tandai Selesai</button>
+          </div>
+          <div id="harvest-progress-bar-wrap" style="margin-top:14px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px">
+              <span style="color:var(--text-muted);font-family:var(--font-mono)">Progress panen (85 hari)</span>
+              <span id="harvest-pct-label" style="color:#5DCAA5;font-family:var(--font-mono)"></span>
+            </div>
+            <div class="mc-bar" style="height:7px"><div id="harvest-progress-fill" class="mc-bar-fill" style="width:0%"></div></div>
+          </div>
+        </div>
+        <div id="harvest-input-view">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div>
+              <label style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);text-transform:uppercase;display:block;margin-bottom:6px">Tanggal Mulai Panen</label>
+              <input type="date" id="input-mulai" style="padding:9px 12px;background:var(--bg-card2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text-primary);font-family:var(--font-mono);font-size:13px;outline:none;transition:border-color 0.15s;width:100%;max-width:260px"
+                onfocus="this.style.borderColor='var(--border-bright)'" onblur="this.style.borderColor='var(--border)'" />
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);font-family:var(--font-mono)">
+              + 85 hari = <span id="preview-selesai" style="color:#5DCAA5">—</span>
+            </div>
+            <div>
+              <button onclick="konfirmasiPanen()" style="padding:10px 20px;background:rgba(29,158,117,0.12);border:1px solid var(--border-bright);border-radius:var(--r-md);color:var(--accent);font-size:13px;cursor:pointer;font-family:var(--font-body);white-space:nowrap;transition:background 0.15s;width:100%;max-width:260px"
+                onmouseover="this.style.background='rgba(29,158,117,0.22)'" onmouseout="this.style.background='rgba(29,158,117,0.12)'">
+                ✓ Konfirmasi & Kunci
+              </button>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-top:10px;line-height:1.6">
+            💡 Durasi optimal melon hidroponik: <b style="color:#EF9F27">85 hari</b> — vegetatif (40 hr) → pembungaan (15 hr) → pembuahan (30 hr)
+          </div>
+          <div id="harvest-input-err" style="font-size:11px;color:#E24B4A;font-family:var(--font-mono);margin-top:6px;min-height:16px"></div>
+        </div>
+      </div>
+
+      <div class="harvest-metrics">
+        <div class="mc">
+          <div class="mc-label" style="margin-bottom:6px">Total panen musim ini</div>
+          <div><span class="mc-val" id="stat-total-panen">—</span><span class="mc-unit" id="stat-total-panen-unit"> kg</span></div>
+          <div class="mc-trend" id="stat-total-panen-trend">—</div>
+        </div>
+        <div class="mc">
+          <div class="mc-label" style="margin-bottom:6px">Estimasi panen berikutnya</div>
+          <div><span class="mc-val" id="stat-est-panen">—</span><span class="mc-unit" id="stat-est-panen-unit"> hari</span></div>
+          <div class="mc-trend" id="stat-est-panen-trend">—</div>
+        </div>
+        <div class="mc">
+          <div class="mc-label" style="margin-bottom:6px">Berat buah estimasi</div>
+          <div><span class="mc-val" id="stat-berat-buah">—</span><span class="mc-unit" id="stat-berat-buah-unit"> kg/buah</span></div>
+          <div class="mc-trend" id="stat-berat-buah-trend">—</div>
+        </div>
+        <div class="mc">
+          <div class="mc-label" style="margin-bottom:6px">Tingkat keberhasilan</div>
+          <div><span class="mc-val" id="stat-keberhasilan">—</span><span class="mc-unit"> %</span></div>
+          <div class="mc-trend" id="stat-keberhasilan-trend">—</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div class="card">
+          <div class="card-title">Progress panen saat ini</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+                <span style="color:var(--text-secondary);font-family:var(--font-mono)" id="prog-fase-label">Belum dimulai</span>
+                <span style="color:#5DCAA5;font-family:var(--font-mono)" id="prog-fase-hari">—</span>
+              </div>
+              <div class="mc-bar" style="height:6px"><div class="mc-bar-fill" id="prog-fase-bar" style="width:0%"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+                <span style="color:var(--text-secondary);font-family:var(--font-mono)">Total siklus (85 hari)</span>
+                <span style="color:#BA7517;font-family:var(--font-mono)" id="prog-total-hari">—</span>
+              </div>
+              <div class="mc-bar" style="height:6px"><div class="mc-bar-fill" id="prog-total-bar" style="width:0%;background:#BA7517"></div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px">
+              <div class="mini-stat"><div class="mini-stat-label">Mulai tanam</div><div class="mini-stat-val" style="font-size:13px" id="prog-tgl-mulai">—</div></div>
+              <div class="mini-stat"><div class="mini-stat-label">Est. bunga</div><div class="mini-stat-val" style="font-size:13px" id="prog-tgl-bunga">—</div></div>
+              <div class="mini-stat"><div class="mini-stat-label">Est. panen selesai</div><div class="mini-stat-val" style="font-size:13px" id="prog-tgl-selesai">—</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Rekomendasi nutrisi saat ini (fase vegetatif)</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div class="alert-row ar-ok" style="padding:8px 10px">
+              <div class="ar-dot" style="background:#1D9E75"></div>
+              <div><div class="ar-msg">pH air: pertahankan di 5.5–6.5</div></div>
+            </div>
+            <div class="alert-row ar-warn" style="padding:8px 10px">
+              <div class="ar-dot" style="background:#BA7517"></div>
+              <div><div class="ar-msg">TDS: naikkan bertahap ke 1800–2000 ppm</div></div>
+            </div>
+            <div class="alert-row ar-info" style="padding:8px 10px">
+              <div class="ar-dot" style="background:#378ADD"></div>
+              <div><div class="ar-msg">Tingkatkan nitrogen (N) untuk pertumbuhan daun</div></div>
+            </div>
+            <div class="alert-row ar-ok" style="padding:8px 10px">
+              <div class="ar-dot" style="background:#1D9E75"></div>
+              <div><div class="ar-msg">Kelembapan tanah: jaga 60–70%</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Riwayat panen melon</div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>Tanggal</th><th>Varietas</th><th>Jumlah Buah</th><th>Total Berat</th><th>Rata-rata/buah</th><th>Kualitas</th><th>Keterangan</th></tr></thead>
+            <tbody>
+              <tr><td>10 Jan 2026</td><td>Melon Golden</td><td>24 buah</td><td>38.4 kg</td><td>1.6 kg</td><td><span class="pill pill-green">Grade A</span></td><td style="color:var(--text-secondary)">Dikirim ke supermarket</td></tr>
+              <tr><td>18 Nov 2025</td><td>Melon Inthanon</td><td>18 buah</td><td>30.0 kg</td><td>1.67 kg</td><td><span class="pill pill-green">Grade A</span></td><td style="color:var(--text-secondary)">Pasar lokal & restoran</td></tr>
+              <tr><td>02 Sep 2025</td><td>Melon Golden</td><td>20 buah</td><td>29.6 kg</td><td>1.48 kg</td><td><span class="pill pill-blue">Grade B</span></td><td style="color:var(--text-secondary)">pH sempat tinggi di fase bunga</td></tr>
+              <tr><td>14 Jun 2025</td><td>Melon Sky Rocket</td><td>22 buah</td><td>35.2 kg</td><td>1.6 kg</td><td><span class="pill pill-green">Grade A</span></td><td style="color:var(--text-secondary)">Dikirim ke hotel</td></tr>
+              <tr><td>28 Mar 2025</td><td>Melon Inthanon</td><td>16 buah</td><td>24.0 kg</td><td>1.5 kg</td><td><span class="pill pill-green">Grade A</span></td><td style="color:var(--text-secondary)">Percobaan perdana hidroponik</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ PAGE: WEATHER ═══════════ -->
+    <div class="page" id="page-weather">
+      <div class="page-hdr">
+        <div>
+          <div class="page-title">Cuaca & Lingkungan</div>
+          <div class="page-sub" id="weather-sub">Cari kota untuk melihat cuaca real-time</div>
+        </div>
+      </div>
+
+      <!-- Search -->
+      <div class="card" style="margin-bottom:16px">
+        <div style="display:flex;gap:10px;align-items:center">
+          <div style="position:relative;flex:1">
+            <input id="city-input" type="text" placeholder="Cari kota... (contoh: Jakarta, Surabaya, Medan)"
+              oninput="onCityType(this.value)" autocomplete="off"
+              onblur="setTimeout(hideSuggest,200)"
+              style="width:100%;padding:10px 14px;background:var(--bg-card2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text-primary);font-family:var(--font-body);font-size:13px;outline:none;transition:border-color 0.15s"
+              onfocus="this.style.borderColor='var(--border-bright)'" />
+            <div id="city-suggest" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg-card);border:1px solid var(--border-bright);border-radius:var(--r-md);z-index:300;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.5)"></div>
+          </div>
+          <button onclick="doSearchCity()"
+            style="padding:10px 18px;background:rgba(29,158,117,0.12);border:1px solid var(--border-bright);border-radius:var(--r-md);color:var(--accent);font-size:13px;cursor:pointer;font-family:var(--font-body);white-space:nowrap;transition:background 0.15s"
+            onmouseover="this.style.background='rgba(29,158,117,0.22)'" onmouseout="this.style.background='rgba(29,158,117,0.12)'">
+            🔍 Cari
+          </button>
+        </div>
+        <div id="weather-msg" style="font-size:11px;font-family:var(--font-mono);color:var(--text-muted);margin-top:8px;min-height:16px"></div>
+      </div>
+
+      <!-- Placeholder -->
+      <div id="weather-empty" class="card" style="text-align:center;padding:48px 24px">
+        <div style="font-size:48px;margin-bottom:12px">🌤️</div>
+        <div style="font-family:var(--font-display);font-size:15px;color:var(--text-secondary);margin-bottom:6px">Belum ada data cuaca</div>
+        <div style="font-size:12px;color:var(--text-muted);font-family:var(--font-mono)">Ketik nama kota di atas lalu pilih dari daftar</div>
+      </div>
+
+      <!-- Hasil cuaca (tersembunyi sampai ada data) -->
+      <div id="weather-content" style="display:none">
+        <div id="weather-cards" class="weather-row"></div>
+
+        <div class="card">
+          <div class="card-title">Rekomendasi untuk kebun melon</div>
+          <div id="weather-rekom" class="alert-stack"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Suhu udara 7 hari ke depan</div>
+          <div class="chart-legend">
+            <span class="cl-item"><span class="cl-dot" style="background:#E24B4A"></span>Suhu max (°C)</span>
+            <span class="cl-item"><span class="cl-dot" style="background:#378ADD"></span>Suhu min (°C)</span>
+          </div>
+          <div class="chart-wrap" style="height:180px"><canvas id="weatherChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ PAGE: ALERTS ═══════════ -->
+    <div class="page" id="page-alerts">
+      <div class="page-hdr">
+        <div>
+          <div class="page-title">Notifikasi</div>
+          <div class="page-sub" id="alerts-sub">0 notifikasi belum dibaca</div>
+        </div>
+        <button class="hdr-btn" onclick="markAllRead()">Tandai semua dibaca</button>
+      </div>
+      <div class="card">
+        <div class="alert-stack" id="alerts-list"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════ PAGE: SETTINGS ═══════════ -->
+    <div class="page" id="page-settings">
+      <div class="page-hdr">
+        <div>
+          <div class="page-title">Pengaturan Sistem</div>
+          <div class="page-sub">Konfigurasi batas sensor dan otomasi — dikirim ke ESP32 via MQTT</div>
+        </div>
+
+      </div>
+
+      <div class="settings-grid">
+
+        <!-- BATAS pH -->
+        <div class="card">
+          <div class="card-title" style="display:flex;align-items:center;gap:8px">
+            Batas pH
+            <span class="sync-badge idle" id="ph-sync-badge">Belum dikirim</span>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">pH minimum</div><div class="setting-sub">Peringatan di bawah nilai ini</div></div>
+            <div class="setting-ctrl">
+              <input type="range" id="set-ph-min" min="4" max="6" step="0.1" value="5.5"
+                oninput="this.nextElementSibling.textContent=parseFloat(this.value).toFixed(1);autoKirimPH()">
+              <span class="val-badge">5.5</span>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">pH maksimum</div><div class="setting-sub">Peringatan di atas nilai ini</div></div>
+            <div class="setting-ctrl">
+              <input type="range" id="set-ph-max" min="6" max="8" step="0.1" value="6.5"
+                oninput="this.nextElementSibling.textContent=parseFloat(this.value).toFixed(1);autoKirimPH()">
+              <span class="val-badge">6.5</span>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">Mode hemat energi</div><div class="setting-sub">Kurangi 30% daya pukul 22:00–05:00</div></div>
+            <button class="toggle off" id="a3" onclick="toggleSwitch('a3',null);autoKirimOtomasi('HEMAT_ENERGI','a3')"></button>
+          </div>
+          <div class="card-send-row">
+            <span class="card-send-status" id="ph-send-status"></span>
+            <span class="card-send-status" id="auto-status"></span>
+          </div>
+        </div>
+
+        <!-- BATAS TDS -->
+        <div class="card">
+          <div class="card-title" style="display:flex;align-items:center;gap:8px">
+            Batas TDS Nutrisi
+            <span class="sync-badge idle" id="tds-sync-badge">Belum dikirim</span>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">TDS minimum (ppm)</div><div class="setting-sub">Peringatan konsentrasi nutrisi terlalu encer</div></div>
+            <div class="setting-ctrl">
+              <input type="range" id="set-tds-min" min="200" max="1500" step="50" value="800"
+                oninput="this.nextElementSibling.textContent=this.value;autoKirimTDS()">
+              <span class="val-badge">800</span>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">TDS maksimum (ppm)</div><div class="setting-sub">Peringatan konsentrasi nutrisi terlalu pekat</div></div>
+            <div class="setting-ctrl">
+              <input type="range" id="set-tds-max" min="1000" max="3000" step="50" value="1600"
+                oninput="this.nextElementSibling.textContent=this.value;autoKirimTDS()">
+              <span class="val-badge">1600</span>
+            </div>
+          </div>
+          <div class="card-send-row">
+            <span class="card-send-status" id="tds-send-status"></span>
+          </div>
+        </div>
+
+        <!-- NOTIFIKASI CARD -->
+        <div class="card">
+          <div class="card-title">Notifikasi</div>
+          <div class="setting-row" style="margin-bottom:8px">
+            <div style="flex:1">
+              <div class="setting-label">Nomor WhatsApp (CallMeBot)</div>
+              <div class="setting-sub">Format: +628xxx · <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank" style="color:var(--accent)">Daftar API Key</a></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <input type="text" id="wa-number" placeholder="+628123456789" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:6px 10px;color:var(--text-primary);font-size:12px;font-family:var(--font-mono)">
+            <input type="text" id="wa-apikey" placeholder="API Key" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:6px 10px;color:var(--text-primary);font-size:12px;font-family:var(--font-mono)">
+            <button onclick="testWA()" style="background:var(--accent);color:#fff;border:none;border-radius:var(--r-sm);padding:6px 12px;font-size:11px;cursor:pointer">Test</button>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">Alert pH &amp; suhu</div><div class="setting-sub">Kirim notifikasi saat melebihi batas</div></div>
+            <button class="toggle on" id="n1" onclick="toggleSwitch('n1',null)"></button>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">Estimasi panen</div><div class="setting-sub">Ingatkan 5 hari sebelum panen</div></div>
+            <button class="toggle on" id="n2" onclick="toggleSwitch('n2',null)"></button>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">Laporan harian</div><div class="setting-sub">Ringkasan pukul 20:00 setiap hari</div></div>
+            <button class="toggle off" id="n3" onclick="toggleSwitch('n3',null)"></button>
+          </div>
+        </div>
+
+
+        <!-- BATAS SUHU -->
+        <div class="card">
+          <div class="card-title" style="display:flex;align-items:center;gap:8px">
+            Batas Suhu Air
+            <span class="sync-badge idle" id="suhu-sync-badge">Belum dikirim</span>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">Suhu minimum (°C)</div><div class="setting-sub">Peringatan suhu terlalu rendah</div></div>
+            <div class="setting-ctrl">
+              <input type="range" id="set-suhu-min" min="10" max="22" step="1" value="18"
+                oninput="this.nextElementSibling.textContent=this.value+'°C';autoKirimSuhu()">
+              <span class="val-badge">18°C</span>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">Suhu maksimum (°C)</div><div class="setting-sub">Peringatan suhu terlalu tinggi</div></div>
+            <div class="setting-ctrl">
+              <input type="range" id="set-suhu-max" min="24" max="35" step="1" value="26"
+                oninput="this.nextElementSibling.textContent=this.value+'°C';autoKirimSuhu()">
+              <span class="val-badge">26°C</span>
+            </div>
+          </div>
+          <div class="card-send-row">
+            <span class="card-send-status" id="suhu-send-status"></span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+/* ── NAVIGATION ─────────────────────────── */
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  const nav = document.getElementById('nav-' + name);
+  if (nav) nav.classList.add('active');
+  // sync bottom nav
+  document.querySelectorAll('.bn-item').forEach(n => n.classList.remove('active'));
+  const bn = document.getElementById('bn-' + name);
+  if (bn) bn.classList.add('active');
+  if (name === 'analytics') setTimeout(buildAnalyticsCharts, 60);
+  if (name === 'weather') setTimeout(buildWeatherChart, 60);
+  if (name === 'sensors') setTimeout(buildSensorDetailChart, 60);
+  // close more menu if open
+  const mm = document.getElementById('mobile-more-menu');
+  if (mm) mm.style.display = 'none';
+}
+
+/* ══════════════════════════════════════════════════════
+   TOGGLE SWITCH — pompa, otomasi, notifikasi
+   ══════════════════════════════════════════════════════ */
+const pumpTopicMap = {
+  'pump1': 'PUMP_A',
+  'pump2': 'PUMP_B',
+  'pump3': 'PUMP_C'
+};
+
+/* ID → key MQTT untuk otomasi */
+const autoTopicMap = {
+  'a3': 'HEMAT_ENERGI',
+};
+
+/* State otomasi sisi dashboard */
+const autoState = { a3: false };
+
+function toggleSwitch(id, statId) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  const on = btn.classList.contains('on');
+  const newState = !on;
+  btn.classList.toggle('on', newState);
+  btn.classList.toggle('off', !newState);
+  if (statId) {
+    const el = document.getElementById(statId);
+    if (el) el.textContent = newState ? 'Aktif' : 'Nonaktif';
+  }
+
+  /* ── Pompa → MQTT control ── */
+  const mqttPumpId = pumpTopicMap[id];
+  if (mqttPumpId) {
+    const cmd = mqttPumpId + ',' + (newState ? 'ON' : 'OFF');
+    const ok = mqttPublish('iot/soccer/control', cmd);
+    console.log('[PUMP]', cmd, ok ? '→ terkirim' : '→ MQTT belum terhubung');
+    return;
+  }
+
+  /* ── Otomasi → MQTT control ── */
+  const autoKey = autoTopicMap[id];
+  if (autoKey) {
+    autoState[id] = newState;
+    const cmd = autoKey + ',' + (newState ? 'ON' : 'OFF');
+    const ok = mqttPublish('iot/soccer/control', cmd);
+    const statusEl = document.getElementById('auto-status');
+    if (statusEl) statusEl.textContent = ok
+      ? '✓ ' + autoKey + ' → ' + (newState ? 'AKTIF' : 'MATI') + ' dikirim ke ESP32'
+      : '✗ MQTT belum terhubung';
+    console.log('[AUTO]', cmd, ok ? '→ terkirim' : '→ MQTT belum terhubung');
+    return;
+  }
+
+  /* ── Toggle notifikasi (n1/n2/n3) — simpan preferensi ── */
+  if (id === 'n1' || id === 'n2' || id === 'n3') {
+    const prefKey = { n1:'notif_ph_suhu', n2:'notif_panen', n3:'notif_laporan' }[id];
+    try { localStorage.setItem(prefKey, newState ? '1' : '0'); } catch(e) {}
+    console.log('[NOTIF]', id, newState ? 'ON' : 'OFF');
+  }
+}
+
+/* Muat preferensi notifikasi dari localStorage */
+function loadNotifPrefs() {
+  const prefs = { n1:'notif_ph_suhu', n2:'notif_panen', n3:'notif_laporan' };
+  for (const [id, key] of Object.entries(prefs)) {
+    const val = localStorage.getItem(key);
+    if (val === null) continue; // default tetap
+    const btn = document.getElementById(id);
+    if (!btn) continue;
+    const on = val === '1';
+    btn.classList.toggle('on', on);
+    btn.classList.toggle('off', !on);
+  }
+}
+
+/* Muat WA config */
+function loadWAConfig() {
+  const num = localStorage.getItem('wa_number') || '';
+  const key = localStorage.getItem('wa_apikey') || '';
+  const numEl = document.getElementById('wa-number');
+  const keyEl = document.getElementById('wa-apikey');
+  if (numEl) numEl.value = num;
+  if (keyEl) keyEl.value = key;
+}
+
+/* ── helpers badge & dirty ── */
+function markDirty(group) {
+  const b = document.getElementById(group + '-sync-badge');
+  if (!b) return;
+  b.className = 'sync-badge dirty';
+  b.textContent = '● Belum dikirim';
+}
+function markSynced(group, time) {
+  const b = document.getElementById(group + '-sync-badge');
+  if (!b) return;
+  b.className = 'sync-badge synced';
+  b.textContent = '✓ Tersinkron ' + time;
+}
+
+/* ── Kirim Batas pH via MQTT ── */
+function kirimPH() {
+  const phMin = parseFloat(document.getElementById('set-ph-min')?.value || 5.5);
+  const phMax = parseFloat(document.getElementById('set-ph-max')?.value || 6.5);
+  THRESHOLDS.phMin = phMin;
+  THRESHOLDS.phMax = phMax;
+  const ok1 = mqttPublish('iot/soccer/control', `PH_MIN,${phMin}`);
+  const ok2 = mqttPublish('iot/soccer/control', `PH_MAX,${phMax}`);
+  const ok = ok1 && ok2;
+  const now = new Date().toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit'});
+  const st = document.getElementById('ph-send-status');
+  if (ok) {
+    markSynced('ph', now);
+    if (st) st.textContent = '✓ Terkirim ' + now;
+    addNotif('info', 'Batas pH dikirim ke ESP32', `pH min: ${phMin}, max: ${phMax}`);
+  } else {
+    if (st) st.textContent = '✗ MQTT belum terhubung';
+    markDirty('ph');
+  }
+}
+
+/* ── Kirim Batas TDS via MQTT ── */
+function kirimTDS() {
+  const tdsMin = parseInt(document.getElementById('set-tds-min')?.value || 800);
+  const tdsMax = parseInt(document.getElementById('set-tds-max')?.value || 1600);
+  THRESHOLDS.tdsMin = tdsMin;
+  THRESHOLDS.tdsMax = tdsMax;
+  const ok1 = mqttPublish('iot/soccer/control', `TDS_MIN,${tdsMin}`);
+  const ok2 = mqttPublish('iot/soccer/control', `TDS_MAX,${tdsMax}`);
+  const ok = ok1 && ok2;
+  const now = new Date().toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit'});
+  const st = document.getElementById('tds-send-status');
+  if (ok) {
+    markSynced('tds', now);
+    if (st) st.textContent = '✓ Terkirim ' + now;
+    addNotif('info', 'Batas TDS dikirim ke ESP32', `TDS min: ${tdsMin} ppm, max: ${tdsMax} ppm`);
+  } else {
+    if (st) st.textContent = '✗ MQTT belum terhubung';
+    markDirty('tds');
+  }
+}
+
+/* ── Kirim Batas Suhu via MQTT ── */
+function kirimSuhu() {
+  const suhuMin = parseInt(document.getElementById('set-suhu-min')?.value || 18);
+  const suhuMax = parseInt(document.getElementById('set-suhu-max')?.value || 26);
+  THRESHOLDS.suhuMin = suhuMin;
+  THRESHOLDS.suhuMax = suhuMax;
+  const ok1 = mqttPublish('iot/soccer/control', `SUHU_MIN,${suhuMin}`);
+  const ok2 = mqttPublish('iot/soccer/control', `SUHU_MAX,${suhuMax}`);
+  const ok = ok1 && ok2;
+  const now = new Date().toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit'});
+  const st = document.getElementById('suhu-send-status');
+  if (ok) {
+    markSynced('suhu', now);
+    if (st) st.textContent = '✓ Terkirim ' + now;
+    addNotif('info', 'Batas suhu dikirim ke ESP32', `Suhu min: ${suhuMin}°C, max: ${suhuMax}°C`);
+  } else {
+    if (st) st.textContent = '✗ MQTT belum terhubung';
+    markDirty('suhu');
+  }
+}
+
+/* ── Kirim status Mode Hemat Energi via MQTT ── */
+function kirimOtomasi() {
+  const state = {
+    HEMAT_ENERGI: document.getElementById('a3')?.classList.contains('on'),
+  };
+  let allOk = true;
+  for (const [key, val] of Object.entries(state)) {
+    const cmd = key + ',' + (val ? 'ON' : 'OFF');
+    const ok = mqttPublish('iot/soccer/control', cmd);
+    if (!ok) allOk = false;
+  }
+  const now = new Date().toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit'});
+  const st = document.getElementById('auto-status');
+  if (allOk) {
+    if (st) st.textContent = '✓ Terkirim ' + now;
+    addNotif('info', 'Pengaturan hemat energi dikirim ke ESP32', Object.entries(state).map(([k,v])=>k+':'+(v?'ON':'OFF')).join(', '));
+  } else {
+    if (st) st.textContent = '✗ MQTT belum terhubung';
+  }
+}
+
+/* ── Auto-kirim dengan debounce (800ms setelah slider berhenti) ── */
+let _debSuhu = null;
+function autoKirimSuhu() {
+  markDirty("suhu");
+  clearTimeout(_debSuhu);
+  const st = document.getElementById("suhu-send-status");
+  if (st) st.textContent = "Mengirim...";
+  _debSuhu = setTimeout(() => kirimSuhu(), 800);
+}
+
+let _debPH = null;
+let _debTDS = null;
+
+function autoKirimPH() {
+  markDirty('ph');
+  clearTimeout(_debPH);
+  const st = document.getElementById('ph-send-status');
+  if (st) st.textContent = '⏳ Mengirim...';
+  _debPH = setTimeout(() => kirimPH(), 800);
+}
+
+function autoKirimTDS() {
+  markDirty('tds');
+  clearTimeout(_debTDS);
+  const st = document.getElementById('tds-send-status');
+  if (st) st.textContent = '⏳ Mengirim...';
+  _debTDS = setTimeout(() => kirimTDS(), 800);
+}
+
+function autoKirimOtomasi(key, btnId) {
+  /* Toggle sudah berubah state sebelum fungsi ini dipanggil */
+  const isOn = document.getElementById(btnId)?.classList.contains('on');
+  const cmd = key + ',' + (isOn ? 'ON' : 'OFF');
+  const ok = mqttPublish('iot/soccer/control', cmd);
+  const now = new Date().toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit'});
+  const st = document.getElementById('auto-status');
+  if (ok) {
+    markSynced('oto', now);
+    if (st) st.textContent = '✓ AUTO_' + key.replace('AUTO_','') + ' → ' + (isOn ? 'NYALA' : 'MATI') + ' · ' + now;
+    addNotif('info', 'Otomasi diperbarui', key + ': ' + (isOn ? 'ON' : 'OFF'));
+  } else {
+    if (st) st.textContent = '✗ MQTT belum terhubung';
+    markDirty('oto');
+  }
+}
+
+/* Simpan WA config (tetap dipakai oleh testWA) */
+function simpanPengaturan() {
+  const waNum = document.getElementById('wa-number')?.value.trim() || '';
+  const waKey = document.getElementById('wa-apikey')?.value.trim() || '';
+  try { localStorage.setItem('wa_number', waNum); localStorage.setItem('wa_apikey', waKey); } catch(e) {}
+}
+
+/* Test kirim WA */
+async function testWA() {
+  const num = document.getElementById('wa-number')?.value.trim();
+  const key = document.getElementById('wa-apikey')?.value.trim();
+  if (!num || !key) { alert('Isi nomor WA dan API Key terlebih dahulu!'); return; }
+  try {
+    localStorage.setItem('wa_number', num);
+    localStorage.setItem('wa_apikey', key);
+    await sendWhatsApp('🌿 HydroSense: Test notifikasi berhasil! Sistem berjalan normal.');
+  } catch(e) {
+    alert('Gagal mengirim: ' + e.message);
+  }
+}
+
+/* Kirim pesan WhatsApp via CallMeBot */
+async function sendWhatsApp(msg) {
+  const num = localStorage.getItem('wa_number');
+  const key = localStorage.getItem('wa_apikey');
+  if (!num || !key) return false;
+  const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(num)}&text=${encodeURIComponent(msg)}&apikey=${key}`;
+  try {
+    await fetch(url, { mode: 'no-cors' });
+    console.log('[WA] Pesan dikirim:', msg);
+    return true;
+  } catch(e) {
+    console.warn('[WA] Gagal kirim:', e);
+    return false;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   SISTEM NOTIFIKASI DINAMIS + THRESHOLD ALERT + WA
+   ══════════════════════════════════════════════════════ */
+
+/* Batas threshold (bisa diubah dari settings) */
+const THRESHOLDS = { phMin: 5.5, phMax: 6.5, suhuMin: 18, suhuMax: 26, tdsMin: 800, tdsMax: 1600 };
+
+/* Array notifikasi aktif */
+let notifications = [];
+let notifIdCounter = 1;
+
+/* Cooldown per tipe alert agar tidak spam (ms) */
+const alertCooldowns = {};
+const ALERT_COOLDOWN_MS = 300000; // 5 menit
+
+function canAlert(key) {
+  const now = Date.now();
+  if (alertCooldowns[key] && now - alertCooldowns[key] < ALERT_COOLDOWN_MS) return false;
+  alertCooldowns[key] = now;
+  return true;
+}
+
+/* Tambah notifikasi baru */
+function addNotif(type, title, detail, sendWA) {
+  const id = notifIdCounter++;
+  const now = new Date();
+  notifications.unshift({
+    id, type, title, detail,
+    time: now,
+    read: false
+  });
+  // max 50
+  if (notifications.length > 50) notifications = notifications.slice(0, 50);
+  renderNotifs();
+  updateNotifBadge();
+
+  // Kirim WA jika diinginkan
+  if (sendWA) {
+    const n1on = document.getElementById('n1')?.classList.contains('on');
+    if (n1on && (type === 'danger' || type === 'warn')) {
+      sendWhatsApp('🌿 HydroSense Alert\n' + title + '\n' + detail);
+    }
+  }
+}
+
+/* Render list notifikasi di halaman Alerts */
+function renderNotifs() {
+  const list = document.getElementById('alerts-list');
+  if (!list) return;
+  if (notifications.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-mono);font-size:12px">Tidak ada notifikasi</div>';
+    return;
+  }
+  const typeMap = {
+    danger: { cls:'ar-danger', dot:'#E24B4A', pill:'<span class="pill pill-red">Kritis</span>' },
+    warn:   { cls:'ar-warn',   dot:'#BA7517', pill:'<span class="pill pill-amber">Peringatan</span>' },
+    info:   { cls:'ar-info',   dot:'#378ADD', pill:'<span class="pill pill-blue">Info</span>' },
+    ok:     { cls:'ar-ok',     dot:'#1D9E75', pill:'' },
+  };
+  list.innerHTML = notifications.map(n => {
+    const tm = typeMap[n.type] || typeMap.info;
+    const ago = timeAgo(n.time);
+    const readTxt = n.read ? 'Dibaca' : 'Belum dibaca';
+    const opacity = n.read ? 'opacity:0.6;' : '';
+    return `<div class="alert-row ${tm.cls}" id="notif-${n.id}" style="${opacity}">
+      <div class="ar-dot" style="background:${tm.dot}"></div>
+      <div style="flex:1">
+        <div class="ar-msg" style="font-weight:${n.read?'400':'500'}">${n.title}</div>
+        ${n.detail ? `<div class="ar-msg" style="margin-top:2px">${n.detail}</div>` : ''}
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;gap:8px">
+          <div class="ar-time">${ago} · ${readTxt}</div>
+          <div style="display:flex;gap:6px;align-items:center">
+            ${tm.pill}
+            ${!n.read ? `<button onclick="markRead(${n.id})" style="background:none;border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:10px;color:var(--text-muted);cursor:pointer">Tandai dibaca</button>` : ''}
+            <button onclick="deleteNotif(${n.id})" style="background:none;border:1px solid rgba(226,75,74,0.3);border-radius:4px;padding:2px 8px;font-size:10px;color:#E24B4A;cursor:pointer">Hapus</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function markRead(id) {
+  const n = notifications.find(x => x.id === id);
+  if (n) { n.read = true; renderNotifs(); updateNotifBadge(); }
+}
+
+function deleteNotif(id) {
+  notifications = notifications.filter(x => x.id !== id);
+  renderNotifs();
+  updateNotifBadge();
+}
+
+function markAllRead() {
+  notifications.forEach(n => n.read = true);
+  renderNotifs();
+  updateNotifBadge();
+}
+
+function updateNotifBadge() {
+  const unread = notifications.filter(n => !n.read).length;
+  // topbar badge
+  const badge = document.querySelector('.notif-badge');
+  if (badge) {
+    badge.textContent = unread > 0 ? unread : '';
+    badge.style.display = unread > 0 ? 'flex' : 'none';
+  }
+  // sidebar badge
+  const navBadge = document.querySelector('#nav-alerts .nav-badge');
+  if (navBadge) navBadge.textContent = unread > 0 ? unread : '';
+  // subtitle
+  const sub = document.getElementById('alerts-sub');
+  if (sub) sub.textContent = unread + ' notifikasi belum dibaca';
+  // bottom nav badge
+  const bnBadge = document.getElementById('bn-notif-badge');
+  if (bnBadge) {
+    bnBadge.textContent = unread > 0 ? unread : '';
+    bnBadge.style.display = unread > 0 ? 'flex' : 'none';
+  }
+}
+
+/* Waktu relatif */
+function timeAgo(date) {
+  const s = Math.floor((Date.now() - date) / 1000);
+  if (s < 60)  return s + ' detik lalu';
+  if (s < 3600) return Math.floor(s/60) + ' menit lalu';
+  if (s < 86400) return Math.floor(s/3600) + ' jam lalu';
+  return Math.floor(s/86400) + ' hari lalu';
+}
+
+/* Periksa threshold dari data sensor → buat alert */
+function checkThresholds(suhuAir, ph, tds) {
+  if (ph > THRESHOLDS.phMax && canAlert('ph_high')) {
+    addNotif('warn', `pH terlalu tinggi: ${ph.toFixed(1)}`, `Nilai pH melebihi batas maksimum ${THRESHOLDS.phMax}. Tambahkan larutan asam phosphat 1–2 ml/L.`, true);
+  }
+  if (ph < THRESHOLDS.phMin && canAlert('ph_low')) {
+    addNotif('warn', `pH terlalu rendah: ${ph.toFixed(1)}`, `Nilai pH di bawah batas minimum ${THRESHOLDS.phMin}. Tambahkan larutan basa (KOH).`, true);
+  }
+  if (suhuAir > THRESHOLDS.suhuMax && canAlert('suhu_high')) {
+    addNotif('danger', `Suhu air terlalu tinggi: ${suhuAir.toFixed(1)}°C`, `Suhu melewati batas maksimum ${THRESHOLDS.suhuMax}°C. Aktifkan pendingin.`, true);
+  }
+  if (suhuAir < THRESHOLDS.suhuMin && canAlert('suhu_low')) {
+    addNotif('danger', `Suhu air terlalu rendah: ${suhuAir.toFixed(1)}°C`, `Suhu di bawah batas minimum ${THRESHOLDS.suhuMin}°C. Aktifkan pemanas.`, true);
+  }
+  if (tds > THRESHOLDS.tdsMax && canAlert('tds_high')) {
+    addNotif('warn', `TDS terlalu tinggi: ${tds} ppm`, `Konsentrasi nutrisi melewati batas ${THRESHOLDS.tdsMax} ppm. Encerkan larutan.`, true);
+  }
+}
+
+/* ── Laporan Harian pukul 20:00 ── */
+let lastDailyReport = localStorage.getItem('last_daily_report') || '';
+function checkDailyReport() {
+  const n3on = document.getElementById('n3')?.classList.contains('on');
+  if (!n3on) return;
+  const now = new Date();
+  const today = now.toISOString().slice(0,10);
+  if (now.getHours() === 20 && now.getMinutes() < 2 && lastDailyReport !== today) {
+    lastDailyReport = today;
+    try { localStorage.setItem('last_daily_report', today); } catch(e) {}
+    const last = sensorHistory.ph.slice(-1)[0] || 0;
+    const lastTDS = sensorHistory.tds.slice(-1)[0] || 0;
+    const lastSuhu = sensorHistory.suhuAir.slice(-1)[0] || 0;
+    const msg = `📊 Laporan Harian HydroSense
+Tanggal: ${today}
+pH: ${last.toFixed(1)} | TDS: ${Math.round(lastTDS*100)} ppm | Suhu: ${lastSuhu.toFixed(1)}°C`;
+    addNotif('info', 'Laporan harian tersedia', `pH: ${last.toFixed(1)}, TDS: ${Math.round(lastTDS*100)} ppm, Suhu: ${lastSuhu.toFixed(1)}°C`);
+    sendWhatsApp(msg);
+  }
+}
+setInterval(checkDailyReport, 60000);
+
+  (function updateDashSub() {
+    const sub = document.getElementById("dashboard-date-sub");
+    if (!sub) return;
+    const now = new Date();
+    const hari = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"][now.getDay()];
+    const bln  = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"][now.getMonth()];
+    sub.textContent = hari + ", " + now.getDate() + " " + bln + " " + now.getFullYear() + " · Real-time via MQTT";
+  })();
+
+
+/* ── Cek estimasi panen (5 hari sebelum) ── */
+function checkPanenNotif() {
+  const n2on = document.getElementById('n2')?.classList.contains('on');
+  if (!n2on) return;
+  const selesai = localStorage.getItem('harvest_selesai');
+  if (!selesai) return;
+  const diff = Math.floor((new Date(selesai) - new Date()) / 86400000);
+  if (diff === 5 && canAlert('panen_5')) {
+    addNotif('info', 'Panen dalam 5 hari!', `Tanaman mendekati waktu panen pada ${selesai}. Siapkan peralatan panen.`);
+    sendWhatsApp(`🌾 HydroSense: Tanaman Anda siap panen dalam 5 hari (${selesai}). Siapkan peralatan!`);
+  }
+  if (diff === 0 && canAlert('panen_0')) {
+    addNotif('ok', 'Waktu panen hari ini!', `Ini hari panen yang direncanakan. Selamat panen!`);
+    sendWhatsApp(`🎉 HydroSense: Selamat! Hari ini adalah hari panen yang direncanakan.`);
+  }
+}
+setInterval(checkPanenNotif, 3600000); // cek tiap jam
+
+/* Inisialisasi notif awal dari localStorage */
+function initNotifs() {
+  // Seed notif awal jika kosong (demo awal)
+  if (notifications.length === 0) {
+    addNotif('ok', 'Sistem HydroSense aktif', 'Dashboard terhubung. Menunggu data sensor dari MQTT...');
+  }
+  renderNotifs();
+  updateNotifBadge();
+  loadNotifPrefs();
+  loadWAConfig();
+}
+
+/* ── CLOCK ──────────────────────────────── */
+function tick() {
+  const d = new Date();
+  document.getElementById('clock').textContent = d.toLocaleTimeString('id-ID');
+}
+setInterval(tick, 1000);
+tick();
+
+/* ══════════════════════════════════════════
+   MQTT via WebSocket — broker.hivemq.com
+   Topic subscribe : iot/soccer/sensor
+   Format payload  : SuhuAir,Ph,TDS,SuhuRuangan,KelembapanTanah
+   Topic publish   : iot/soccer/control
+   Format publish  : pH,<val> | TDS,<val> | SOIL,<val>
+   ══════════════════════════════════════════ */
+
+/* ── history buffer untuk trend chart ── */
+const MAX_HISTORY = 50;
+const sensorHistory = {
+  timestamps: [],
+  suhuAir:    [],
+  suhuRuang:  [],
+  ph:         [],
+  tds:        [],
+  kelembapan: []
+};
+
+/* ── status display helpers ── */
+const mqttStatusEl = document.getElementById('mqtt-status-text');
+const mqttDotEl    = document.getElementById('mqtt-dot');
+
+function setMqttStatus(state) {
+  const map = {
+    connecting: { text: 'Menghubungkan ke MQTT...', color: '#BA7517' },
+    connected:  { text: 'MQTT terhubung · live',    color: '#1D9E75' },
+    error:      { text: 'MQTT gagal terhubung',      color: '#E24B4A' },
+    disconnected:{ text:'MQTT terputus',             color: '#E24B4A' }
+  };
+  const s = map[state] || map.disconnected;
+  if (mqttStatusEl) mqttStatusEl.textContent = s.text;
+  if (mqttDotEl)    mqttDotEl.style.background = s.color;
+}
+
+/* ── update semua elemen UI dari data sensor ── */
+function applyToUI(data) {
+  const { suhuAir, ph, tds, suhuRuang, kelembapan } = data;
+  const now = new Date().toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+
+  /* ── metric cards dashboard ── */
+  const elTemp     = document.getElementById('d-temp');
+  const elSuhuRuang= document.getElementById('d-suhu-ruang');
+  const elPh       = document.getElementById('d-ph');
+  const elTds      = document.getElementById('d-tds');
+  const elHum      = document.getElementById('d-hum');
+  if (elTemp)      elTemp.textContent      = suhuAir.toFixed(1);
+  if (elSuhuRuang) elSuhuRuang.textContent = suhuRuang.toFixed(1);
+  if (elPh)        elPh.textContent        = ph.toFixed(1);
+  if (elTds)       elTds.textContent       = Math.round(tds);
+  if (elHum)       elHum.textContent       = Math.round(kelembapan);
+
+  /* ── progress bars dashboard ── */
+  const setBar = (id, pct, clamp) => { const el = document.getElementById(id); if (el) el.style.width = Math.min(100, Math.max(0, pct)) + '%'; };
+  setBar('d-temp-bar', (suhuAir / 40) * 100);
+  setBar('d-suhu-ruang-bar', (suhuRuang / 50) * 100);
+  setBar('d-ph-bar', (ph / 14) * 100);
+  setBar('d-tds-bar', (tds / 2000) * 100);
+  setBar('d-hum-bar', kelembapan);
+
+  /* ── trend labels dashboard ── */
+  const phOk   = ph >= 5.5 && ph <= 6.5;
+  const tempOk = suhuAir >= 18 && suhuAir <= 26;
+  const tdsOk  = tds >= 800 && tds <= 1500;
+  const humOk  = kelembapan >= 40 && kelembapan <= 80;
+
+  const setTrend = (id, ok, okText, badText) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = ok ? okText : badText;
+    el.className = 'mc-trend ' + (ok ? 'trend-ok' : 'trend-bad');
+  };
+  setTrend('d-temp-trend',       tempOk, '● optimal 18–26°C', '⚠ di luar batas!');
+  setTrend('d-suhu-ruang-trend', suhuRuang <= 35, '● normal', '⚠ terlalu panas!');
+  setTrend('d-ph-trend',         phOk,   '● optimal 5.5–6.5', '⚠ di luar batas!');
+  setTrend('d-tds-trend',        tdsOk,  '● optimal 800–1500', '⚠ di luar batas!');
+  setTrend('d-hum-trend',        humOk,  '● optimal 40–80%', '⚠ di luar batas!');
+
+  if (elPh)   elPh.style.color   = phOk   ? '' : '#E24B4A';
+  if (elTemp) elTemp.style.color  = tempOk ? '' : '#BA7517';
+
+  /* ── update halaman zona melon (page-zones) dari MQTT ── */
+  const zSet = (id, val) => { const el = document.getElementById(id); if (el) el.innerHTML = val; };
+
+  // Fungsi untuk menggerakkan arc gauge SVG berdasarkan nilai dan range
+  // arcLen = 141.4 (panjang total arc setengah lingkaran)
+  function updateGauge(arcId, value, min, max) {
+    const arc = document.getElementById(arcId);
+    if (!arc) return;
+    const arcLen = 141.4;
+    const pct    = Math.min(1, Math.max(0, (value - min) / (max - min)));
+    const offset = arcLen - (pct * arcLen);
+    arc.style.strokeDashoffset = offset.toFixed(2);
+
+    // Warna adaptif: hijau (ok) → kuning (perhatian) → merah (bahaya)
+    // Warna default dipertahankan sesuai sensor masing-masing, hanya berubah saat danger
+    if (pct >= 0.95) {
+      arc.style.stroke = '#E24B4A'; // merah — melebihi batas
+    } else if (pct >= 0.85) {
+      arc.style.stroke = '#BA7517'; // kuning — perhatian
+    } else {
+      // kembalikan ke warna asli sensor
+      const defaultColors = {
+        'gauge-arc-suhu-air':   '#378ADD',
+        'gauge-arc-ph':         '#1D9E75',
+        'gauge-arc-tds':        '#BA7517',
+        'gauge-arc-kelembapan': '#7F77DD',
+      };
+      arc.style.stroke = defaultColors[arcId] || '#1D9E75';
+    }
+  }
+
+  updateGauge('gauge-arc-suhu-air',   suhuAir,    0,  100);
+  updateGauge('gauge-arc-ph',         ph,         0,  20);
+  updateGauge('gauge-arc-tds',        tds,        0,  3000);
+  updateGauge('gauge-arc-kelembapan', kelembapan, 0,  100);
+
+  zSet('zone-suhu-air',   suhuAir.toFixed(1) + '<span class="gauge-unit">°C</span>');
+  zSet('zone-ph',         ph.toFixed(1) + '<span class="gauge-unit"> pH</span>');
+  zSet('zone-tds',        Math.round(tds) + '<span class="gauge-unit"> ppm</span>');
+  zSet('zone-kelembapan', Math.round(kelembapan) + '<span class="gauge-unit"> %</span>');
+  zSet('zm-suhu-air',   suhuAir.toFixed(1) + '<span class="mini-stat-unit">°C</span>');
+  zSet('zm-suhu-ruang', suhuRuang.toFixed(1) + '<span class="mini-stat-unit">°C</span>');
+  zSet('zm-ph',         ph.toFixed(1));
+  zSet('zm-tds',        Math.round(tds) + '<span class="mini-stat-unit"> ppm</span>');
+  zSet('zm-kelembapan', Math.round(kelembapan) + '<span class="mini-stat-unit">%</span>');
+  const allMelonOk = phOk && tempOk && tdsOk && humOk;
+  const zmStatus = document.getElementById('zm-status');
+  const zmPill   = document.getElementById('zm-pill');
+  if (zmStatus) zmStatus.textContent = allMelonOk ? 'Normal' : 'Perlu Perhatian';
+  if (zmPill) {
+    zmPill.textContent = allMelonOk ? '● Semua parameter normal' : '⚠ Ada parameter di luar batas';
+    zmPill.className = 'zone-pill ' + (allMelonOk ? 'zp-ok' : 'zp-warn');
+  }
+
+  /* ── update halaman sensor (page-sensors) ── */
+  const sSet = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  sSet('s-suhu-air',   suhuAir.toFixed(1) + ' °C');
+  sSet('s-suhu-ruang', suhuRuang.toFixed(1) + ' °C');
+  sSet('s-ph',         ph.toFixed(1));
+  sSet('s-tds',        Math.round(tds));
+  sSet('s-kelembapan', Math.round(kelembapan));
+
+  const setSensorStatus = (idStatus, ok) => {
+    const el = document.getElementById(idStatus);
+    if (!el) return;
+    el.textContent = ok ? '● Normal' : '⚠ Peringatan';
+    el.className = 'mc-trend ' + (ok ? 'trend-ok' : 'trend-bad');
+  };
+  setSensorStatus('s-suhu-air-status',   tempOk);
+  setSensorStatus('s-suhu-ruang-status', suhuRuang <= 35);
+  setSensorStatus('s-ph-status',         phOk);
+  setSensorStatus('s-tds-status',        tdsOk);
+  setSensorStatus('s-kelembapan-status', humOk);
+
+  /* ── update tabel sensor ── */
+  const makePill = (ok) => ok
+    ? '<span class="pill pill-green">Normal</span>'
+    : '<span class="pill pill-amber">Peringatan</span>';
+  const tSet = (id, val) => { const el = document.getElementById(id); if (el) el.innerHTML = val; };
+  tSet('t-suhu-air',       suhuAir.toFixed(1) + ' °C');
+  tSet('t-suhu-ruang',     suhuRuang.toFixed(1) + ' °C');
+  tSet('t-ph',             ph.toFixed(1));
+  tSet('t-tds',            Math.round(tds) + ' ppm');
+  tSet('t-kelembapan',     Math.round(kelembapan) + ' %');
+  tSet('t-suhu-air-pill',  makePill(tempOk));
+  tSet('t-suhu-ruang-pill',makePill(suhuRuang <= 35));
+  tSet('t-ph-pill',        makePill(phOk));
+  tSet('t-tds-pill',       makePill(tdsOk));
+  tSet('t-kelembapan-pill',makePill(humOk));
+  ['t-suhu-air-time','t-suhu-ruang-time','t-ph-time','t-tds-time','t-kelembapan-time'].forEach(id => tSet(id, now));
+
+  /* ── push history & update trend charts ── */
+  sensorHistory.timestamps.push(now);
+  sensorHistory.suhuAir.push(suhuAir);
+  sensorHistory.suhuRuang.push(suhuRuang);
+  sensorHistory.ph.push(ph);
+  sensorHistory.tds.push(tds / 100);
+  sensorHistory.kelembapan.push(kelembapan);
+
+  const keys = ['timestamps','suhuAir','suhuRuang','ph','tds','kelembapan'];
+  keys.forEach(k => { if (sensorHistory[k].length > MAX_HISTORY) sensorHistory[k].shift(); });
+
+  /* update Chart.js trendChart (dashboard) */
+  if (window.trendChartRef) {
+    const c = window.trendChartRef;
+    c.data.labels           = [...sensorHistory.timestamps];
+    c.data.datasets[0].data = [...sensorHistory.suhuAir];
+    c.data.datasets[1].data = [...sensorHistory.suhuRuang];
+    c.data.datasets[2].data = [...sensorHistory.ph];
+    c.data.datasets[3].data = [...sensorHistory.tds];
+    c.data.datasets[4].data = [...sensorHistory.kelembapan];
+    c.update('none');
+  }
+
+  /* update Chart.js sensorDetailChart (halaman sensor) */
+  if (window.sensorDetailChartRef) {
+    const c = window.sensorDetailChartRef;
+    c.data.labels           = [...sensorHistory.timestamps];
+    c.data.datasets[0].data = [...sensorHistory.suhuAir];
+    c.data.datasets[1].data = [...sensorHistory.suhuRuang];
+    c.data.datasets[2].data = [...sensorHistory.ph];
+    c.data.datasets[3].data = [...sensorHistory.tds];
+    c.data.datasets[4].data = [...sensorHistory.kelembapan];
+    c.update('none');
+  }
+
+  /* topbar sys-pill color */
+  const sysPill = document.querySelector('.sys-pill');
+  if (sysPill) {
+    const allOk = phOk && tempOk && tdsOk;
+    sysPill.style.borderColor = allOk ? 'rgba(29,158,117,0.3)' : 'rgba(226,75,74,0.4)';
+  }
+
+  /* ── sinkron panel kontrol dengan nilai sensor terkini ── */
+  if (!ctrlUserActive) {
+    ctrlPH   = Math.round(ph * 10) / 10;
+    ctrlTDS  = Math.round(tds);
+    ctrlSoil = Math.round(kelembapan);
+    const elPHVal   = document.getElementById('ctrl-ph-val');
+    const elTDSVal  = document.getElementById('ctrl-tds-val');
+    const elSoilVal = document.getElementById('ctrl-soil-val');
+    if (elPHVal)   elPHVal.textContent   = ctrlPH.toFixed(1);
+    if (elTDSVal)  elTDSVal.textContent  = ctrlTDS;
+    if (elSoilVal) elSoilVal.textContent = ctrlSoil + '%';
+  }
+}
+
+/* ══ MQTT CLIENT via MQTT.js ══════ */
+let mqttClient = null;
+
+function connectMQTT() {
+  setMqttStatus('connecting');
+
+  const clientId = 'hydrosense_' + Math.random().toString(16).slice(2, 8);
+
+  mqttClient = mqtt.connect('wss://broker.hivemq.com:8884/mqtt', {
+    clientId: clientId,
+    keepalive: 30,
+    reconnectPeriod: 5000,
+    connectTimeout: 10000,
+    clean: true
+  });
+
+  mqttClient.on('connect', () => {
+    setMqttStatus('connected');
+    mqttClient.subscribe('iot/soccer/sensor',   { qos: 0 });
+    mqttClient.subscribe('iot/soccer/pump_ack', { qos: 0 });
+    console.log('MQTT.js terhubung & subscribe: sensor + pump_ack');
+  });
+
+  mqttClient.on('error', (err) => {
+    console.error('MQTT error:', err);
+    setMqttStatus('error');
+  });
+
+  mqttClient.on('offline', () => {
+    setMqttStatus('disconnected');
+  });
+
+  mqttClient.on('reconnect', () => {
+    setMqttStatus('connecting');
+  });
+
+  mqttClient.on('message', (topic, payload) => {
+    const msg = payload.toString().trim();
+    try {
+      /* ── ACK dari ESP32: "PUMP_A,ON,OK" ── */
+      if (topic === 'iot/soccer/pump_ack') {
+        const parts = msg.split(',');
+        if (parts.length >= 2) {
+          const pumpName = parts[0]; // PUMP_A / PUMP_B / PUMP_C
+          const state    = parts[1]; // ON / OFF
+          const idMap = { PUMP_A:'pump1', PUMP_B:'pump2', PUMP_C:'pump3' };
+          const btnId = idMap[pumpName];
+          if (btnId) {
+            const btn = document.getElementById(btnId);
+            if (btn) {
+              const isOn = state === 'ON';
+              btn.classList.toggle('on', isOn);
+              btn.classList.toggle('off', !isOn);
+              const statEl = document.getElementById(btnId + '-stat');
+              if (statEl) statEl.textContent = isOn ? 'Aktif' : 'Nonaktif';
+            }
+          }
+          addNotif('ok', `${pumpName} ${state === 'ON' ? 'dinyalakan' : 'dimatikan'}`, `Konfirmasi dari ESP32: ${pumpName} → ${state}`);
+        }
+        return;
+      }
+
+      /* ── Sensor data dari ESP32 ── */
+      if (topic === 'iot/soccer/sensor') {
+        const parts = msg.split(',').map(Number);
+        if (parts.length < 5 || parts.some(isNaN)) return;
+        const [suhuAir, ph, tds, suhuRuang, kelembapan] = parts;
+        applyToUI({ suhuAir, ph, tds, suhuRuang, kelembapan });
+        pushPhReading(ph);                 // akumulasi pH harian
+        accumulateDailyAnalytics(tds);     // akumulasi water, nutrisi, biomassa
+        checkThresholds(suhuAir, ph, tds); // periksa threshold → alert
+      }
+    } catch(e) {
+      console.error('Gagal parse payload:', e);
+    }
+  });
+}
+
+/* ── publish helper ── */
+function mqttPublish(topic, payload) {
+  if (!mqttClient || !mqttClient.connected) {
+    console.warn('MQTT belum terhubung, tidak bisa publish');
+    return false;
+  }
+  mqttClient.publish(topic, String(payload));
+  return true;
+}
+
+/* ── init ── */
+window.addEventListener('load', () => {
+  if (typeof mqtt === 'undefined') {
+    console.error('MQTT.js library gagal dimuat');
+    setMqttStatus('error');
+    return;
+  }
+  connectMQTT();
+  seedDummyPh();
+  initNotifs();
+});
+
+/* ── CHART DEFAULTS ─────────────────────── */
+/* ── opsi x-axis real-time (timestamp rapi, tidak miring) ── */
+const REALTIME_X_OPTS = {
+  ticks: {
+    font: { size: 10, family: "'DM Mono', monospace" },
+    color: '#4A604A',
+    maxRotation: 0,       /* paksa horizontal, tidak miring */
+    autoSkip: true,
+    maxTicksLimit: 8      /* max 8 label agar tidak penuh */
+  },
+  grid: { color: 'rgba(255,255,255,0.03)' }
+};
+
+const CHART_DEFAULTS = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { ticks: { font: { size: 11, family: "'DM Mono', monospace" }, color: '#4A604A' }, grid: { color: 'rgba(255,255,255,0.03)' } },
+    y: { ticks: { font: { size: 11, family: "'DM Mono', monospace" }, color: '#4A604A' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+  }
+};
+
+/* dataset template tanpa dot */
+const dsOpts = (label, color, bgColor) => ({
+  label, data: [],
+  borderColor: color,
+  backgroundColor: bgColor,
+  fill: true,
+  tension: 0.45,
+  pointRadius: 0,        /* hapus dot */
+  pointHoverRadius: 4,   /* tetap muncul saat hover */
+  borderWidth: 2
+});
+
+/* ── TREND CHART (dashboard) — data diisi MQTT real-time ── */
+window.trendChartRef = new Chart(document.getElementById('trendChart'), {
+  type: 'line',
+  data: {
+    labels: [],
+    datasets: [
+      dsOpts('Suhu Air',         '#378ADD', 'rgba(55,138,221,0.04)'),
+      dsOpts('Suhu Ruangan',     '#E24B4A', 'rgba(226,75,74,0.04)'),
+      dsOpts('pH',               '#1D9E75', 'rgba(29,158,117,0.04)'),
+      dsOpts('TDS/100',          '#BA7517', 'rgba(186,117,23,0.04)'),
+      dsOpts('Kelembapan Tanah', '#7F77DD', 'rgba(127,119,221,0.04)')
+    ]
+  },
+  options: {
+    ...CHART_DEFAULTS,
+    animation: false,          /* matikan animasi agar data berjalan mulus */
+    scales: {
+      x: REALTIME_X_OPTS,
+      y: { ticks: { font: { size: 11, family: "'DM Mono', monospace" }, color: '#4A604A' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+    }
+  }
+});
+
+/* ── SENSOR DETAIL CHART (halaman sensor) ── */
+let sensorDetailChartRef = null;
+function buildSensorDetailChart() {
+  if (sensorDetailChartRef) return;
+  const canvas = document.getElementById('sensorDetailChart');
+  if (!canvas) return;
+  sensorDetailChartRef = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: [...sensorHistory.timestamps],
+      datasets: [
+        { ...dsOpts('Suhu Air',      '#378ADD', 'rgba(55,138,221,0.05)'),  data: [...sensorHistory.suhuAir] },
+        { ...dsOpts('Suhu Ruangan',  '#E24B4A', 'rgba(226,75,74,0.05)'),   data: [...sensorHistory.suhuRuang] },
+        { ...dsOpts('pH',            '#1D9E75', 'rgba(29,158,117,0.05)'),  data: [...sensorHistory.ph] },
+        { ...dsOpts('TDS/100',       '#BA7517', 'rgba(186,117,23,0.05)'),  data: [...sensorHistory.tds] },
+        { ...dsOpts('Kelembapan',    '#7F77DD', 'rgba(127,119,221,0.05)'), data: [...sensorHistory.kelembapan] }
+      ]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      animation: false,
+      scales: {
+        x: REALTIME_X_OPTS,
+        y: { ticks: { font: { size: 11, family: "'DM Mono', monospace" }, color: '#4A604A' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+  window.sensorDetailChartRef = sensorDetailChartRef;
+}
+
+/* ── KONTROL ESP32 ── */
+let ctrlPH   = 7.0;
+let ctrlTDS  = 500;
+let ctrlSoil = 50;
+let ctrlUserActive = false;
+let ctrlUserActiveTimer = null;
+
+function markCtrlActive() {
+  ctrlUserActive = true;
+  clearTimeout(ctrlUserActiveTimer);
+  ctrlUserActiveTimer = setTimeout(() => { ctrlUserActive = false; }, 3000);
+}
+
+function controlPH(delta) {
+  markCtrlActive();
+  ctrlPH = Math.min(14, Math.max(0, Math.round((ctrlPH + delta) * 10) / 10));
+  document.getElementById('ctrl-ph-val').textContent = ctrlPH.toFixed(1);
+  const ok = mqttPublish('iot/soccer/control', 'pH,' + ctrlPH.toFixed(1));
+  document.getElementById('ctrl-ph-status').textContent = ok
+    ? '✓ Dikirim: pH → ' + ctrlPH.toFixed(1)
+    : '✗ MQTT belum terhubung';
+}
+
+function controlTDS(delta) {
+  markCtrlActive();
+  ctrlTDS = Math.min(2000, Math.max(0, ctrlTDS + delta));
+  document.getElementById('ctrl-tds-val').textContent = ctrlTDS;
+  const ok = mqttPublish('iot/soccer/control', 'TDS,' + ctrlTDS);
+  document.getElementById('ctrl-tds-status').textContent = ok
+    ? '✓ Dikirim: TDS → ' + ctrlTDS
+    : '✗ MQTT belum terhubung';
+}
+
+function controlSoil(delta) {
+  markCtrlActive();
+  ctrlSoil = Math.min(100, Math.max(0, ctrlSoil + delta));
+  document.getElementById('ctrl-soil-val').textContent = ctrlSoil + '%';
+  const ok = mqttPublish('iot/soccer/control', 'SOIL,' + ctrlSoil);
+  document.getElementById('ctrl-soil-status').textContent = ok
+    ? '✓ Dikirim: SOIL → ' + ctrlSoil + '%'
+    : '✗ MQTT belum terhubung';
+}
+
+/* ── JADWAL IRIGASI — realtime ───────────── */
+const JADWAL = [
+  { jam: '06:00', nama: 'Zona A — Siklus pagi NFT',       durasi: '20 mnt' },
+  { jam: '09:30', nama: 'Zona B — Penambahan nutrisi DWC', durasi: '15 mnt' },
+  { jam: '12:00', nama: 'Zona A+C — Siklus siang',         durasi: '20 mnt' },
+  { jam: '15:00', nama: 'Zona D — Semprotan aeroponik',    durasi: '30 mnt' },
+  { jam: '18:30', nama: 'Semua zona — Siklus sore',        durasi: '45 mnt' },
+  { jam: '22:00', nama: 'Zona B — Cek nutrisi malam',      durasi: '15 mnt' },
+];
+
+function renderSchedule() {
+  const now  = new Date();
+  const hhmm = now.getHours() * 60 + now.getMinutes();
+  const list = document.getElementById('schedule-list');
+  if (!list) return;
+
+  list.innerHTML = JADWAL.map(item => {
+    const [h, m]   = item.jam.split(':').map(Number);
+    const itemMins = h * 60 + m;
+    const diff     = itemMins - hhmm;
+
+    let rowClass = '', dotColor = '#4A604A', timeColor = '', nameSty = '', badge = '';
+    if (diff < 0) {
+      // sudah lewat
+      dotColor = '#1D9E75';
+      badge = `<span class="sch-badge sb-done">Selesai</span>`;
+    } else if (diff <= 30) {
+      // sedang berjalan (dalam 30 mnt ke depan = window aktif)
+      rowClass  = 'active-sch';
+      dotColor  = '#378ADD';
+      timeColor = 'style="color:#378ADD"';
+      nameSty   = 'style="color:#85B7EB"';
+      badge = `<span class="sch-badge sb-active">Berjalan</span>`;
+    } else {
+      // belum
+      badge = `<span class="sch-badge sb-pending">${item.durasi}</span>`;
+    }
+
+    return `<div class="sch-row ${rowClass}">
+      <div class="sch-dot" style="background:${dotColor}"></div>
+      <span class="sch-time" ${timeColor}>${item.jam}</span>
+      <span class="sch-name" ${nameSty}>${item.nama}</span>
+      ${badge}
+    </div>`;
+  }).join('');
+}
+
+// render awal + update tiap menit
+renderSchedule();
+setInterval(renderSchedule, 60000);
+
+/* ── pH HARIAN — akumulasi per jam ÷ 24 ─────────────── */
+// struktur: { 'YYYY-MM-DD': { sum: float, count: int } }
+const phDailyAcc = {};
+let phChartRef = null;
+
+function phDailyKey() {
+  const d = new Date();
+  return d.toISOString().slice(0, 10); // 'YYYY-MM-DD'
+}
+
+// Inject dummy pH data untuk 7 hari ke belakang (sebelum hari ini)
+function seedDummyPh() {
+  const dummyVals = [6.1, 6.3, 6.0, 6.2, 6.4, 6.1, 6.2];
+  for (let i = 7; i >= 1; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    const avg = dummyVals[7 - i];
+    phDailyAcc[key] = { sum: avg * 24, count: 24 };
+  }
+  updatePhDailyChart();
+}
+
+function pushPhReading(phVal) {
+  const key = phDailyKey();
+  if (!phDailyAcc[key]) phDailyAcc[key] = { sum: 0, count: 0 };
+  phDailyAcc[key].sum   += phVal;
+  phDailyAcc[key].count += 1;
+  updatePhDailyChart();
+}
+
+function updatePhDailyChart() {
+  const today = phDailyKey();
+
+  const keys = Object.keys(phDailyAcc).sort();
+  if (!keys.length) return;
+
+  const labels = keys.map(k => {
+    const d = new Date(k + 'T00:00:00');
+    return d.toLocaleDateString('id-ID', { day:'2-digit', month:'short' });
+  });
+  const values = keys.map(k => {
+    const { sum, count } = phDailyAcc[k];
+    return parseFloat((sum / count).toFixed(2));
+  });
+
+  // sembunyikan placeholder
+  const emptyEl = document.getElementById('ph-chart-empty');
+  if (emptyEl) emptyEl.style.display = 'none';
+
+  if (!phChartRef) {
+    phChartRef = new Chart(document.getElementById('phChart'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Rata-rata pH/hari',
+          data: values,
+          borderColor: '#378ADD',
+          backgroundColor: 'rgba(55,138,221,0.08)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 5,
+          pointBackgroundColor: '#378ADD',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        ...CHART_DEFAULTS,
+        scales: {
+          ...CHART_DEFAULTS.scales,
+          y: { ...CHART_DEFAULTS.scales.y, min: 4, max: 9,
+            ticks: { font: { size: 11, family: "'DM Mono', monospace" }, color: '#4A604A' },
+            grid: { color: 'rgba(255,255,255,0.04)' }
+          }
+        }
+      }
+    });
+  } else {
+    phChartRef.data.labels           = labels;
+    phChartRef.data.datasets[0].data = values;
+    phChartRef.update('none');
+  }
+}
+
+/* ══════════════════════════════════════════════
+   ANALYTICS REAL DATA — Water, TDS, Biomass
+   Data dikumpulkan dari MQTT real-time & disimpan ke localStorage
+   ══════════════════════════════════════════════ */
+
+/* ── Akumulasi harian Water (L/hari) & TDS (ppm avg/hari) ── */
+const WATER_PER_MSG   = 0.028;  // estimasi L per siklus MQTT (≈ setiap 800ms → ~120L/hari)
+const waterDailyAcc   = {};     // { 'YYYY-MM-DD': { totalL: float, msgCount: int } }
+const tdsDailyAcc     = {};     // { 'YYYY-MM-DD': { sumPPM: float, count: int } }
+let waterChartRef     = null;
+let nutChartRef       = null;
+let bioChartRef       = null;
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/* Hitung 7 label hari (Sen…Min) mundur dari hari ini */
+function last7DayLabels() {
+  const days   = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+  const labels = [], keys = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    labels.push(days[d.getDay()]);
+    keys.push(d.toISOString().slice(0, 10));
+  }
+  return { labels, keys };
+}
+
+/* Simpan akumulasi ke localStorage agar bertahan reload */
+function saveAnalyticsStorage() {
+  try {
+    localStorage.setItem('hs_waterAcc', JSON.stringify(waterDailyAcc));
+    localStorage.setItem('hs_tdsAcc',   JSON.stringify(tdsDailyAcc));
+  } catch(e) {}
+}
+function loadAnalyticsStorage() {
+  try {
+    const w = localStorage.getItem('hs_waterAcc');
+    const t = localStorage.getItem('hs_tdsAcc');
+    if (w) Object.assign(waterDailyAcc, JSON.parse(w));
+    if (t) Object.assign(tdsDailyAcc,   JSON.parse(t));
+  } catch(e) {}
+}
+loadAnalyticsStorage();
+
+/* Dipanggil setiap MQTT message masuk (dari applyToUI) */
+function accumulateDailyAnalytics(tds) {
+  const key = todayKey();
+  if (!waterDailyAcc[key]) waterDailyAcc[key] = { totalL: 0, msgCount: 0 };
+  if (!tdsDailyAcc[key])   tdsDailyAcc[key]   = { sumPPM: 0, count: 0 };
+
+  waterDailyAcc[key].totalL    += WATER_PER_MSG;
+  waterDailyAcc[key].msgCount  += 1;
+  tdsDailyAcc[key].sumPPM      += tds;
+  tdsDailyAcc[key].count       += 1;
+
+  // simpan setiap 50 pesan
+  if (waterDailyAcc[key].msgCount % 50 === 0) saveAnalyticsStorage();
+
+  // update chart langsung jika sudah dibuild
+  if (waterChartRef) updateWaterChart();
+  if (nutChartRef)   updateNutChart();
+  if (bioChartRef)   updateBioChart();
+}
+
+/* ── Biomassa: estimasi dari TDS & jumlah pesan (proxy lama tumbuh) ── */
+function estimateBiomass(tds, msgCount) {
+  // Rumus sederhana: biomassa ≈ (TDS/1000) * msgCount * 0.18
+  // Artinya semakin tinggi nutrisi & semakin lama sistem jalan → biomassa bertambah
+  return Math.round((tds / 1000) * msgCount * 0.18);
+}
+
+function updateWaterChart() {
+  const { labels, keys } = last7DayLabels();
+  const data = keys.map(k => waterDailyAcc[k] ? Math.round(waterDailyAcc[k].totalL) : 0);
+  if (waterChartRef) {
+    waterChartRef.data.labels           = labels;
+    waterChartRef.data.datasets[0].data = data;
+    waterChartRef.update('none');
+  }
+}
+
+function updateNutChart() {
+  const { labels, keys } = last7DayLabels();
+  const data = keys.map(k => {
+    if (!tdsDailyAcc[k] || tdsDailyAcc[k].count === 0) return 0;
+    return Math.round(tdsDailyAcc[k].sumPPM / tdsDailyAcc[k].count);
+  });
+  const minVal = data.filter(v=>v>0).length > 0 ? Math.max(0, Math.min(...data.filter(v=>v>0)) - 100) : 0;
+  if (nutChartRef) {
+    nutChartRef.data.labels           = labels;
+    nutChartRef.data.datasets[0].data = data;
+    nutChartRef.options.scales.y.min  = minVal;
+    nutChartRef.update('none');
+  }
+}
+
+function updateBioChart() {
+  const { labels, keys } = last7DayLabels();
+  const data = keys.map(k => {
+    if (!tdsDailyAcc[k] || tdsDailyAcc[k].count === 0) return 0;
+    const avgTDS = tdsDailyAcc[k].sumPPM / tdsDailyAcc[k].count;
+    return estimateBiomass(avgTDS, tdsDailyAcc[k].count);
+  });
+  if (bioChartRef) {
+    bioChartRef.data.labels           = labels;
+    bioChartRef.data.datasets[0].data = data;
+    bioChartRef.update('none');
+  }
+}
+
+/* ── ANALYTICS CHARTS — dibangun saat tab analytics dibuka ── */
+let analyticsBuilt = false;
+function buildAnalyticsCharts() {
+  if (analyticsBuilt) return;
+  analyticsBuilt = true;
+
+  const { labels, keys } = last7DayLabels();
+
+  // Water
+  const waterData = keys.map(k => waterDailyAcc[k] ? Math.round(waterDailyAcc[k].totalL) : 0);
+  waterChartRef = new Chart(document.getElementById('waterChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data: waterData, backgroundColor: 'rgba(55,138,221,0.6)', borderRadius: 5, borderSkipped: false }] },
+    options: CHART_DEFAULTS
+  });
+
+  // Nutrisi
+  const nutData = keys.map(k => {
+    if (!tdsDailyAcc[k] || tdsDailyAcc[k].count === 0) return 0;
+    return Math.round(tdsDailyAcc[k].sumPPM / tdsDailyAcc[k].count);
+  });
+  const minVal = nutData.filter(v=>v>0).length > 0 ? Math.max(0, Math.min(...nutData.filter(v=>v>0)) - 100) : 0;
+  nutChartRef = new Chart(document.getElementById('nutChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data: nutData, backgroundColor: 'rgba(29,158,117,0.6)', borderRadius: 5, borderSkipped: false }] },
+    options: { ...CHART_DEFAULTS, scales: { ...CHART_DEFAULTS.scales, y: { ...CHART_DEFAULTS.scales.y, min: minVal } } }
+  });
+
+  // Biomassa
+  const bioData = keys.map(k => {
+    if (!tdsDailyAcc[k] || tdsDailyAcc[k].count === 0) return 0;
+    const avgTDS = tdsDailyAcc[k].sumPPM / tdsDailyAcc[k].count;
+    return estimateBiomass(avgTDS, tdsDailyAcc[k].count);
+  });
+  bioChartRef = new Chart(document.getElementById('bioChart'), {
+    type: 'line',
+    data: { labels, datasets: [
+      { data: bioData, borderColor: '#5DCAA5', backgroundColor: 'rgba(93,202,165,0.08)', fill: true, tension: 0.45, pointRadius: 4, borderWidth: 2 }
+    ]},
+    options: CHART_DEFAULTS
+  });
+}
+
+/* ── TANGGAL PANEN — lock logic ──────────── */
+const PANEN_DURASI = 85; // hari optimal melon hidroponik
+const BULAN_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+function fmtTanggal(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.getDate() + ' ' + BULAN_ID[d.getMonth()] + ' ' + d.getFullYear();
+}
+
+function addDays(dateStr, days) {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+// Preview tanggal selesai saat user ketik
+document.addEventListener('DOMContentLoaded', () => {
+  const inp = document.getElementById('input-mulai');
+  if (inp) inp.addEventListener('change', function() {
+    const prev = document.getElementById('preview-selesai');
+    if (!prev) return;
+    prev.textContent = this.value ? fmtTanggal(addDays(this.value, PANEN_DURASI)) : '—';
+  });
+});
+
+function konfirmasiPanen() {
+  const mulai  = document.getElementById('input-mulai').value;
+  const errEl  = document.getElementById('harvest-input-err');
+  if (!mulai) { errEl.textContent = '⚠ Tanggal mulai harus diisi.'; return; }
+  errEl.textContent = '';
+
+  const selesai = addDays(mulai, PANEN_DURASI);
+  localStorage.setItem('harvest_mulai',  mulai);
+  localStorage.setItem('harvest_selesai', selesai);
+  localStorage.setItem('harvest_locked', '1');
+  tampilkanHarvestLocked(mulai, selesai);
+}
+
+function selesaikanPanen() {
+  if (!confirm('Tandai proses panen sebagai SELESAI? Kunci akan dibuka dan tanggal bisa diisi ulang.')) return;
+  localStorage.removeItem('harvest_mulai');
+  localStorage.removeItem('harvest_selesai');
+  localStorage.removeItem('harvest_locked');
+  document.getElementById('harvest-locked-view').style.display = 'none';
+  document.getElementById('harvest-input-view').style.display  = 'block';
+  document.getElementById('input-mulai').value = '';
+  const prev = document.getElementById('preview-selesai');
+  if (prev) prev.textContent = '—';
+  // Reset stats kartu ke kondisi tanpa siklus aktif
+  hitungHarvestStats(null);
+}
+
+function tampilkanHarvestLocked(mulai, selesai) {
+  document.getElementById('harvest-input-view').style.display  = 'none';
+  document.getElementById('harvest-locked-view').style.display = 'block';
+  document.getElementById('locked-mulai').textContent   = fmtTanggal(mulai);
+  document.getElementById('locked-selesai').textContent = fmtTanggal(selesai);
+
+  const now      = new Date(); now.setHours(0,0,0,0);
+  const tMulai   = new Date(mulai   + 'T00:00:00');
+  const tSelesai = new Date(selesai + 'T00:00:00');
+  const sudah    = Math.max(0, Math.round((now - tMulai)   / 86400000));
+  const sisa     = Math.max(0, Math.round((tSelesai - now) / 86400000));
+  const pct      = Math.min(100, Math.round((sudah / PANEN_DURASI) * 100));
+
+  // Update locked bar atas
+  document.getElementById('locked-sisa').textContent           = sisa + ' hari';
+  document.getElementById('harvest-pct-label').textContent     = pct + '% selesai (hari ke-' + sudah + ' dari ' + PANEN_DURASI + ')';
+  document.getElementById('harvest-progress-fill').style.width = pct + '%';
+
+  // Hitung tanggal bunga = mulai + 40 hari
+  const tglBunga   = addDays(mulai, 40);
+
+  // Fase saat ini
+  // 0–40: vegetatif, 41–55: pembungaan, 56–85: pembuahan
+  let faseLabel, faseHari, faseDur, fasePct, faseColor;
+  if (sudah <= 0) {
+    faseLabel = 'Belum dimulai'; faseHari = '—'; fasePct = 0; faseColor = '#4A604A';
+  } else if (sudah <= 40) {
+    faseLabel = 'Fase vegetatif';
+    faseHari  = 'Hari ' + sudah + ' / 40';
+    fasePct   = Math.round((sudah / 40) * 100);
+    faseColor = '#5DCAA5';
+  } else if (sudah <= 55) {
+    const h = sudah - 40;
+    faseLabel = 'Fase pembungaan';
+    faseHari  = 'Hari ' + h + ' / 15';
+    fasePct   = Math.round((h / 15) * 100);
+    faseColor = '#BA7517';
+  } else {
+    const h = sudah - 55;
+    faseLabel = 'Fase pembuahan';
+    faseHari  = 'Hari ' + h + ' / 30';
+    fasePct   = Math.round((h / 30) * 100);
+    faseColor = '#378ADD';
+  }
+
+  // Update progress card
+  const el = (id) => document.getElementById(id);
+  if (el('prog-fase-label'))   el('prog-fase-label').textContent   = faseLabel;
+  if (el('prog-fase-hari'))    el('prog-fase-hari').textContent    = faseHari;
+  if (el('prog-fase-bar'))     { el('prog-fase-bar').style.width = fasePct + '%'; el('prog-fase-bar').style.background = faseColor; }
+  if (el('prog-total-hari'))   el('prog-total-hari').textContent   = sudah > 0 ? 'Hari ' + sudah + ' / ' + PANEN_DURASI : '—';
+  if (el('prog-total-bar'))    el('prog-total-bar').style.width    = pct + '%';
+  if (el('prog-tgl-mulai'))    el('prog-tgl-mulai').textContent    = fmtTanggal(mulai);
+  if (el('prog-tgl-bunga'))    el('prog-tgl-bunga').textContent    = fmtTanggal(tglBunga);
+  if (el('prog-tgl-selesai'))  el('prog-tgl-selesai').textContent  = fmtTanggal(selesai);
+
+  // Update 4 kartu statistik panen secara dinamis
+  hitungHarvestStats(mulai);
+}
+
+/* ── HARVEST STATS — data riwayat panen ─────────────────────────
+   Data diambil dari tabel riwayat panen yang ada di halaman.
+   Setiap baris punya: tanggal, varietas, jumlah buah, total berat, rata2/buah, kualitas
+──────────────────────────────────────────────────────────────── */
+const RIWAYAT_PANEN = [
+  { tanggal: '2026-01-10', varietas: 'Melon Golden',    jumlah: 24, totalKg: 38.4, rataKg: 1.6,  grade: 'A' },
+  { tanggal: '2025-11-18', varietas: 'Melon Inthanon',  jumlah: 18, totalKg: 30.0, rataKg: 1.67, grade: 'A' },
+  { tanggal: '2025-09-02', varietas: 'Melon Golden',    jumlah: 20, totalKg: 29.6, rataKg: 1.48, grade: 'B' },
+  { tanggal: '2025-06-14', varietas: 'Melon Sky Rocket',jumlah: 22, totalKg: 35.2, rataKg: 1.6,  grade: 'A' },
+  { tanggal: '2025-03-28', varietas: 'Melon Inthanon',  jumlah: 16, totalKg: 24.0, rataKg: 1.5,  grade: 'A' },
+];
+
+function hitungHarvestStats(mulaiStr) {
+  const sekarang = new Date(); sekarang.setHours(0,0,0,0);
+
+  /* ── 1. Total panen musim ini
+     "Musim ini" = siklus panen aktif saat ini (dari tanggal mulai sampai sekarang).
+     Jika belum ada siklus aktif, ambil semua panen dalam 12 bulan terakhir. ─── */
+  let batasMulai;
+  if (mulaiStr) {
+    batasMulai = new Date(mulaiStr + 'T00:00:00');
+  } else {
+    batasMulai = new Date(sekarang);
+    batasMulai.setFullYear(batasMulai.getFullYear() - 1);
+  }
+
+  const panenMusimIni = RIWAYAT_PANEN.filter(p => {
+    const tgl = new Date(p.tanggal + 'T00:00:00');
+    return tgl >= batasMulai && tgl <= sekarang;
+  });
+
+  // Panen musim lalu: satu periode PANEN_DURASI sebelum batasMulai
+  const batasMulaiLalu = new Date(batasMulai);
+  batasMulaiLalu.setDate(batasMulaiLalu.getDate() - PANEN_DURASI);
+  const panenMusimLalu = RIWAYAT_PANEN.filter(p => {
+    const tgl = new Date(p.tanggal + 'T00:00:00');
+    return tgl >= batasMulaiLalu && tgl < batasMulai;
+  });
+
+  const totalKgMusimIni  = panenMusimIni.reduce((s,p) => s + p.totalKg, 0);
+  const totalKgMusimLalu = panenMusimLalu.reduce((s,p) => s + p.totalKg, 0);
+
+  let trendTotal, trendClass;
+  if (panenMusimIni.length === 0) {
+    trendTotal = '— Belum ada panen musim ini';
+    trendClass = 'trend-warn';
+  } else if (totalKgMusimLalu > 0) {
+    const selisih = Math.round(((totalKgMusimIni - totalKgMusimLalu) / totalKgMusimLalu) * 100);
+    trendTotal = (selisih >= 0 ? '▲ +' : '▼ ') + selisih + '% vs musim lalu';
+    trendClass = selisih >= 0 ? 'trend-ok' : 'trend-danger';
+  } else {
+    trendTotal = '● Data musim lalu tidak ada';
+    trendClass = 'trend-warn';
+  }
+
+  const el = (id) => document.getElementById(id);
+  if (el('stat-total-panen')) {
+    if (totalKgMusimIni === 0 && panenMusimIni.length === 0) {
+      el('stat-total-panen').textContent = '0';
+    } else {
+      el('stat-total-panen').textContent = totalKgMusimIni.toFixed(1);
+    }
+    el('stat-total-panen-trend').textContent = trendTotal;
+    el('stat-total-panen-trend').className   = 'mc-trend ' + trendClass;
+  }
+
+  /* ── 2. Estimasi panen berikutnya ─────────────────────────────
+     Jika ada siklus aktif: hitung sisa hari sampai tanggal selesai.
+     Jika tidak: tampilkan "Belum ada siklus aktif". ──────────── */
+  if (el('stat-est-panen')) {
+    if (mulaiStr) {
+      const tSelesai = new Date(addDays(mulaiStr, PANEN_DURASI) + 'T00:00:00');
+      const sisaHari = Math.max(0, Math.round((tSelesai - sekarang) / 86400000));
+      const sudah    = Math.max(0, Math.round((sekarang - new Date(mulaiStr + 'T00:00:00')) / 86400000));
+
+      let faseLabel;
+      if (sudah <= 0)       faseLabel = '🌱 Belum dimulai';
+      else if (sudah <= 40) faseLabel = '🍃 Fase vegetatif hari ke-' + sudah;
+      else if (sudah <= 55) faseLabel = '🌸 Fase pembungaan hari ke-' + (sudah - 40);
+      else                  faseLabel = '🍈 Fase pembuahan hari ke-' + (sudah - 55);
+
+      if (sisaHari === 0) {
+        el('stat-est-panen').textContent      = 'Siap';
+        el('stat-est-panen-unit').textContent = '';
+        el('stat-est-panen-trend').textContent = '🎉 Panen bisa dilakukan hari ini!';
+        el('stat-est-panen-trend').className   = 'mc-trend trend-ok';
+      } else {
+        el('stat-est-panen').textContent      = '~' + sisaHari;
+        el('stat-est-panen-unit').textContent = ' hari';
+        el('stat-est-panen-trend').textContent = faseLabel;
+        el('stat-est-panen-trend').className   = 'mc-trend trend-ok';
+      }
+    } else {
+      el('stat-est-panen').textContent      = '—';
+      el('stat-est-panen-unit').textContent = '';
+      el('stat-est-panen-trend').textContent = '⚠ Isi tanggal mulai panen';
+      el('stat-est-panen-trend').className   = 'mc-trend trend-warn';
+    }
+  }
+
+  /* ── 3. Berat buah estimasi ───────────────────────────────────
+     Berdasarkan fase saat ini:
+     - Vegetatif (0–40):    terlalu dini, estimasi berdasarkan rata-rata historis
+     - Pembungaan (41–55):  target 1.5–2.0 kg/buah
+     - Pembuahan (56–85):   estimasi berdasarkan hari pembuahan (makin tua makin berat)
+     Jika tidak ada siklus: gunakan rata-rata historis. ─────── */
+  if (el('stat-berat-buah')) {
+    const rataHistoris = RIWAYAT_PANEN.length > 0
+      ? RIWAYAT_PANEN.reduce((s,p) => s + p.rataKg, 0) / RIWAYAT_PANEN.length
+      : 1.55;
+
+    let beratLabel, beratTrend, beratClass;
+    if (mulaiStr) {
+      const sudah = Math.max(0, Math.round((sekarang - new Date(mulaiStr + 'T00:00:00')) / 86400000));
+      if (sudah <= 0) {
+        beratLabel = rataHistoris.toFixed(1) + '–' + (rataHistoris + 0.4).toFixed(1);
+        beratTrend = '📊 Estimasi berdasarkan historis';
+        beratClass = 'trend-warn';
+      } else if (sudah <= 40) {
+        beratLabel = rataHistoris.toFixed(1) + '–' + (rataHistoris + 0.4).toFixed(1);
+        beratTrend = '🌱 Fase vegetatif — belum bisa estimasi akurat';
+        beratClass = 'trend-warn';
+      } else if (sudah <= 55) {
+        beratLabel = '1.5–2.0';
+        beratTrend = '🌸 Fase pembungaan — target grade A';
+        beratClass = 'trend-ok';
+      } else {
+        const hPembuahan = sudah - 55; // 0–30
+        const progPembuahan = Math.min(1, hPembuahan / 30);
+        const minBerat = 1.4 + (progPembuahan * 0.3);
+        const maxBerat = 1.8 + (progPembuahan * 0.4);
+        beratLabel = minBerat.toFixed(1) + '–' + maxBerat.toFixed(1);
+        beratTrend = '🍈 Pembuahan hari ke-' + hPembuahan + ' — berat bertambah';
+        beratClass = 'trend-ok';
+      }
+    } else {
+      beratLabel = rataHistoris.toFixed(1) + '–' + (rataHistoris + 0.4).toFixed(1);
+      beratTrend = '📊 Berdasarkan ' + RIWAYAT_PANEN.length + ' musim historis';
+      beratClass = 'trend-warn';
+    }
+    el('stat-berat-buah').textContent      = beratLabel;
+    el('stat-berat-buah-unit').textContent = ' kg/buah';
+    el('stat-berat-buah-trend').textContent = beratTrend;
+    el('stat-berat-buah-trend').className   = 'mc-trend ' + beratClass;
+  }
+
+  /* ── 4. Tingkat keberhasilan ─────────────────────────────────
+     = (jumlah panen Grade A / total panen) × 100
+     Dihitung dari seluruh riwayat panen. ───────────────────── */
+  if (el('stat-keberhasilan')) {
+    const total   = RIWAYAT_PANEN.length;
+    const gradeA  = RIWAYAT_PANEN.filter(p => p.grade === 'A').length;
+    const pct     = total > 0 ? Math.round((gradeA / total) * 100) : 0;
+
+    let keberLabel, keberClass;
+    if (pct >= 90)      { keberLabel = '▲ sangat baik';  keberClass = 'trend-ok'; }
+    else if (pct >= 75) { keberLabel = '▲ baik';          keberClass = 'trend-ok'; }
+    else if (pct >= 60) { keberLabel = '● cukup';         keberClass = 'trend-warn'; }
+    else                { keberLabel = '▼ perlu perbaikan'; keberClass = 'trend-danger'; }
+
+    el('stat-keberhasilan').textContent       = pct;
+    el('stat-keberhasilan-trend').textContent = keberLabel + ' (' + gradeA + '/' + total + ' Grade A)';
+    el('stat-keberhasilan-trend').className   = 'mc-trend ' + keberClass;
+  }
+}
+
+// Restore state dari localStorage saat load
+(function initHarvest() {
+  const locked  = localStorage.getItem('harvest_locked');
+  const mulai   = localStorage.getItem('harvest_mulai');
+  const selesai = localStorage.getItem('harvest_selesai');
+  if (locked && mulai && selesai) tampilkanHarvestLocked(mulai, selesai);
+  // Hitung stats apapun kondisinya (dengan atau tanpa siklus aktif)
+  hitungHarvestStats(locked && mulai ? mulai : null);
+})();
+
+/* ── WEATHER — Open-Meteo + Geocoding ── */
+let weatherChartInst = null;
+let cityTypeTimer    = null;
+
+const BULAN = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+const HARI  = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+const HARI_S= ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+
+const WMO_ICON = {0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌧️',61:'🌦️',63:'🌧️',65:'🌧️',71:'❄️',73:'❄️',75:'❄️',80:'🌧️',81:'🌧️',82:'⛈️',95:'⛈️',96:'⛈️',99:'⛈️'};
+const WMO_DESC = {0:'Cerah',1:'Cerah',2:'Sebagian berawan',3:'Mendung',45:'Berkabut',48:'Berkabut',51:'Gerimis ringan',53:'Gerimis',55:'Gerimis lebat',61:'Hujan ringan',63:'Hujan',65:'Hujan lebat',71:'Salju ringan',73:'Salju',75:'Salju lebat',80:'Hujan lokal',81:'Hujan lokal',82:'Hujan deras',95:'Badai petir',96:'Badai petir',99:'Badai besar'};
+const wIcon = c => WMO_ICON[c] || '🌡️';
+const wDesc = c => WMO_DESC[c] || '-';
+
+function setMsg(t) { const e = document.getElementById('weather-msg'); if(e) e.textContent = t; }
+
+function onCityType(val) {
+  clearTimeout(cityTypeTimer);
+  if (val.length < 2) { hideSuggest(); return; }
+  cityTypeTimer = setTimeout(() => loadSuggestions(val), 350);
+}
+
+async function loadSuggestions(q) {
+  try {
+    const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=8&language=id&format=json`);
+    const d = await r.json();
+    showSuggest(d.results || []);
+  } catch(e) { hideSuggest(); }
+}
+
+function showSuggest(list) {
+  const box = document.getElementById('city-suggest');
+  if (!list.length) { box.style.display='none'; return; }
+  box.innerHTML = list.map(r => {
+    const lbl = [r.name, r.admin1, r.country].filter(Boolean).join(', ');
+    return `<div style="padding:10px 14px;cursor:pointer;font-size:12px;color:var(--text-primary);border-bottom:1px solid var(--border);font-family:var(--font-body)"
+      onmousedown="pickCity(${r.latitude},${r.longitude},'${lbl.replace(/'/g,'\\'+'&#39;')}')"
+      onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">${lbl}</div>`;
+  }).join('');
+  box.style.display = 'block';
+}
+
+function hideSuggest() { const b=document.getElementById('city-suggest'); if(b) b.style.display='none'; }
+
+function pickCity(lat, lon, label) {
+  document.getElementById('city-input').value = label;
+  hideSuggest();
+  loadWeather(lat, lon, label);
+}
+
+async function doSearchCity() {
+  const q = document.getElementById('city-input').value.trim();
+  if (!q) return;
+  setMsg('Mencari kota...');
+  try {
+    const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=id&format=json`);
+    const d = await r.json();
+    if (!d.results || !d.results.length) { setMsg('Kota tidak ditemukan, coba nama lain.'); return; }
+    const c = d.results[0];
+    const label = [c.name, c.admin1, c.country].filter(Boolean).join(', ');
+    loadWeather(c.latitude, c.longitude, label);
+  } catch(e) { setMsg('Gagal terhubung. Cek koneksi internet.'); }
+}
+
+async function loadWeather(lat, lon, label) {
+  setMsg('Mengambil data cuaca...');
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_sum,relative_humidity_2m_max&timezone=auto&forecast_days=7`;
+    const r = await fetch(url);
+    const d = await r.json();
+    renderWeather(d.daily, label);
+    setMsg('');
+  } catch(e) { setMsg('Gagal mengambil data cuaca. Coba lagi.'); }
+}
+
+function renderWeather(d, label) {
+  /* update subtitle */
+  const sub = document.getElementById('weather-sub');
+  if (sub) sub.textContent = 'Prakiraan 7 hari — ' + label;
+
+  /* tampilkan konten, sembunyikan placeholder */
+  document.getElementById('weather-empty').style.display   = 'none';
+  document.getElementById('weather-content').style.display = 'block';
+
+  /* 4 kartu cuaca */
+  const cards = document.getElementById('weather-cards');
+  cards.innerHTML = d.time.slice(0,4).map((ds, i) => {
+    const dt     = new Date(ds + 'T00:00:00');
+    const isToday= i === 0;
+    const dayLbl = isToday ? 'Hari ini'
+      : HARI[dt.getDay()] + ', ' + dt.getDate() + ' ' + BULAN[dt.getMonth()];
+    const rain   = d.precipitation_sum[i];
+    return `<div class="weather-card ${isToday ? 'today' : ''}">
+      <div class="${isToday ? 'w-today-label' : 'w-day'}">${dayLbl}</div>
+      <div class="w-icon">${wIcon(d.weathercode[i])}</div>
+      <div class="w-temp">${Math.round(d.temperature_2m_max[i])}°C</div>
+      <div class="w-hum">Min ${Math.round(d.temperature_2m_min[i])}°C · 💧${Math.round(d.relative_humidity_2m_max[i])}%</div>
+      <div class="w-cond">${wDesc(d.weathercode[i])}</div>
+      ${rain > 0 ? `<div style="font-size:10px;color:#378ADD;font-family:var(--font-mono);margin-top:3px">🌧 ${rain.toFixed(1)} mm</div>` : ''}
+    </div>`;
+  }).join('');
+
+  /* rekomendasi berdasarkan data hari ini */
+  const t = d.temperature_2m_max[0], h = d.relative_humidity_2m_max[0],
+        rain0 = d.precipitation_sum[0];
+  const rekoms = [];
+  if (t >= 34)
+    rekoms.push({cls:'ar-danger',dot:'#E24B4A',title:`Suhu sangat tinggi (${Math.round(t)}°C)`,msg:'Aktifkan naungan/pendingin. Monitor suhu air jangan melebihi 26°C untuk melon.'});
+  else if (t >= 30)
+    rekoms.push({cls:'ar-warn',dot:'#BA7517',title:`Suhu udara tinggi (${Math.round(t)}°C)`,msg:'Pantau suhu air dan pastikan ventilasi kebun cukup.'});
+  else
+    rekoms.push({cls:'ar-ok',dot:'#1D9E75',title:`Suhu udara normal (${Math.round(t)}°C)`,msg:'Kondisi baik untuk pertumbuhan melon. Lanjutkan irigasi rutin.'});
+  if (rain0 > 10)
+    rekoms.push({cls:'ar-info',dot:'#378ADD',title:`Hujan cukup deras (${rain0.toFixed(1)} mm)`,msg:'Kurangi irigasi 30–50%. Cek drainase, hindari genangan di akar melon.'});
+  else if (rain0 > 0)
+    rekoms.push({cls:'ar-info',dot:'#378ADD',title:`Ada hujan ringan (${rain0.toFixed(1)} mm)`,msg:'Sesuaikan jadwal irigasi, kurangi sedikit volume air.'});
+  if (h >= 85)
+    rekoms.push({cls:'ar-warn',dot:'#BA7517',title:`Kelembaban sangat tinggi (${Math.round(h)}%)`,msg:'Tingkatkan sirkulasi udara untuk mencegah jamur pada tanaman melon.'});
+  const hujanDepan = d.time.slice(1,4).some((_,i) => d.precipitation_sum[i+1] > 5);
+  if (hujanDepan)
+    rekoms.push({cls:'ar-info',dot:'#378ADD',title:'Potensi hujan beberapa hari ke depan',msg:'Siapkan jadwal irigasi fleksibel dan pastikan drainase berfungsi baik.'});
+
+  document.getElementById('weather-rekom').innerHTML = rekoms.map(r =>
+    `<div class="alert-row ${r.cls}">
+      <div class="ar-dot" style="background:${r.dot}"></div>
+      <div>
+        <div class="ar-msg" style="font-weight:500">${r.title}</div>
+        <div class="ar-msg">${r.msg}</div>
+        <div class="ar-time">Rekomendasi otomatis · data Open-Meteo</div>
+      </div>
+    </div>`
+  ).join('');
+
+  /* chart suhu 7 hari */
+  if (weatherChartInst) { weatherChartInst.destroy(); weatherChartInst = null; }
+  weatherChartInst = new Chart(document.getElementById('weatherChart'), {
+    type: 'line',
+    data: {
+      labels: d.time.map(ds => { const dt=new Date(ds+'T00:00:00'); return HARI_S[dt.getDay()]; }),
+      datasets: [
+        { label:'Max', data: d.temperature_2m_max.map(v=>Math.round(v)), borderColor:'#E24B4A', backgroundColor:'rgba(226,75,74,0.07)', fill:true, tension:0.4, pointRadius:3, borderWidth:2 },
+        { label:'Min', data: d.temperature_2m_min.map(v=>Math.round(v)), borderColor:'#378ADD', backgroundColor:'rgba(55,138,221,0.07)', fill:true, tension:0.4, pointRadius:3, borderWidth:2 }
+      ]
+    },
+    options: CHART_DEFAULTS
+  });
+}
+
+let weatherBuilt = false;
+function buildWeatherChart() { weatherBuilt = true; /* tidak perlu, diload saat search */ }
+
+/* ── MOBILE MORE MENU ──────────────────────────────── */
+function toggleMobileMenu() {
+  const mm = document.getElementById('mobile-more-menu');
+  if (!mm) return;
+  mm.style.display = mm.style.display === 'none' ? 'block' : 'none';
+}
+document.addEventListener('click', function(e) {
+  const mm = document.getElementById('mobile-more-menu');
+  const btn = document.getElementById('bn-more');
+  if (mm && btn && !mm.contains(e.target) && !btn.contains(e.target)) {
+    mm.style.display = 'none';
+  }
+});
+
+</script>
+
+<!-- ── BOTTOM NAV (mobile) ───────────────────────────── -->
+<div class="bottom-nav" id="bottom-nav">
+  <div class="bn-item active" id="bn-dashboard" onclick="showPage('dashboard')" data-page="dashboard">
+    <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
+    Beranda
+  </div>
+  <div class="bn-item" id="bn-sensors" onclick="showPage('sensors')" data-page="sensors">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.3 3.3l1.4 1.4M11.3 11.3l1.4 1.4M3.3 12.7l1.4-1.4M11.3 4.7l1.4-1.4"/></svg>
+    Sensor
+  </div>
+  <div class="bn-item" id="bn-pumps" onclick="showPage('pumps')" data-page="pumps">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.5" y="5" width="8" height="7" rx="1.5"/><path d="M9.5 8.5h2a2.5 2.5 0 000-5H7.5M4.5 8.5V8"/><circle cx="5" cy="9.5" r="1.5" fill="currentColor" stroke="none" opacity="0.5"/></svg>
+    Pompa
+  </div>
+  <div class="bn-item" id="bn-harvest" onclick="showPage('harvest')" data-page="harvest">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2.5 14l1.8-5h7.4l1.8 5H2.5z"/><path d="M5.5 9V6.5a2.5 2.5 0 015 0V9"/><path d="M8 4V2"/></svg>
+    Panen
+  </div>
+  <div class="bn-item" id="bn-alerts" onclick="showPage('alerts')" data-page="alerts">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M8 1a5 5 0 00-5 5v3l-1 2h12l-1-2V6a5 5 0 00-5-5z"/><path d="M6.5 13.5a1.5 1.5 0 003 0" stroke-linecap="round"/></svg>
+    <span class="bn-badge" id="bn-notif-badge"></span>
+    Notif
+  </div>
+  <div class="bn-item" id="bn-more" onclick="toggleMobileMenu()" data-page="">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="4" cy="8" r="1.2" fill="currentColor" stroke="none"/><circle cx="8" cy="8" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="8" r="1.2" fill="currentColor" stroke="none"/></svg>
+    Lainnya
+  </div>
+</div>
+
+<!-- ── MOBILE MORE MENU ─────────────────────────────── -->
+<div id="mobile-more-menu" style="display:none;position:fixed;bottom:64px;right:12px;background:var(--bg-card);border:1px solid var(--border-bright);border-radius:var(--r-lg);z-index:300;min-width:160px;padding:6px;box-shadow:0 8px 32px rgba(0,0,0,0.5)">
+  <div onclick="showPage('zones');toggleMobileMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-md);cursor:pointer;font-size:13px;color:var(--text-secondary);font-family:var(--font-body)" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M8 2C5.5 5 3.5 7 3.5 10a4.5 4.5 0 009 0C12.5 7 10.5 5 8 2z"/></svg>
+    Zona Tanam
+  </div>
+  <div onclick="showPage('analytics');toggleMobileMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-md);cursor:pointer;font-size:13px;color:var(--text-secondary);font-family:var(--font-body)" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 12l3-4 3 2 3-5.5 3 2.5"/></svg>
+    Grafik & Tren
+  </div>
+  <div onclick="showPage('weather');toggleMobileMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-md);cursor:pointer;font-size:13px;color:var(--text-secondary);font-family:var(--font-body)" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M4.5 11a3.5 3.5 0 116.6-1.6A2.5 2.5 0 1112 13H4a2.5 2.5 0 010-5z"/></svg>
+    Cuaca
+  </div>
+  <div style="height:1px;background:var(--border);margin:4px 0"></div>
+  <div onclick="showPage('settings');toggleMobileMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-md);cursor:pointer;font-size:13px;color:var(--text-secondary);font-family:var(--font-body)" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.2 3.2l1 1M11.8 11.8l1 1M3.2 12.8l1-1M11.8 4.2l1-1"/></svg>
+    Pengaturan
+  </div>
+</div>
+
+<!-- ── PWA INSTALL BANNER ─────────────────────────────── -->
+<div id="pwa-banner" style="display:none;position:fixed;bottom:72px;left:12px;right:12px;background:var(--bg-card);border:1px solid var(--border-bright);border-radius:var(--r-lg);padding:14px 16px;z-index:400;box-shadow:0 8px 32px rgba(0,0,0,0.5);display:none;align-items:center;gap:12px">
+  <div style="width:36px;height:36px;background:var(--accent);border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="white"><path d="M10 3C7.3 6.8 5.5 9 5.5 12a4.5 4.5 0 009 0C14.5 9 12.7 6.8 10 3z"/></svg>
+  </div>
+  <div style="flex:1;min-width:0">
+    <div style="font-size:13px;font-weight:600;color:var(--text-primary);font-family:var(--font-display)">Install HydroSense</div>
+    <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-top:1px">Tambahkan ke layar utama HP kamu</div>
+  </div>
+  <button id="pwa-install-btn" style="padding:8px 14px;background:rgba(29,158,117,0.15);border:1px solid var(--border-bright);border-radius:var(--r-md);color:var(--accent);font-size:12px;cursor:pointer;font-family:var(--font-body);white-space:nowrap">Install</button>
+  <button onclick="document.getElementById('pwa-banner').style.display='none'" style="width:28px;height:28px;background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;line-height:1;padding:0;flex-shrink:0">×</button>
+</div>
+
+<!-- ── PWA: Service Worker + Install Prompt ───────────── -->
+<script>
+/* ── Service Worker ── */
+if ('serviceWorker' in navigator) {
+  const SW_CODE = `
+const CACHE = 'hydrosense-v1';
+const PRECACHE = [];
+self.addEventListener('install', e => { self.skipWaiting(); });
+self.addEventListener('activate', e => { e.waitUntil(clients.claim()); });
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+  e.respondWith(
+    caches.match(e.request).then(cached => {
+      return cached || fetch(e.request).then(res => {
+        if (res.ok && e.request.url.startsWith(self.location.origin)) {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+        }
+        return res;
+      }).catch(() => cached);
+    })
+  );
+});
+  `;
+  const swBlob = new Blob([SW_CODE], { type: 'application/javascript' });
+  const swURL  = URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swURL, { scope: '/' })
+    .catch(() => {/* scope mungkin dibatasi hosting, abaikan */ });
+}
+
+/* ── Install Prompt ── */
+let deferredPrompt = null;
+const banner = document.getElementById('pwa-banner');
+const installBtn = document.getElementById('pwa-install-btn');
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  banner.style.display = 'flex';
+});
+
+if (installBtn) {
+  installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    banner.style.display = 'none';
+  });
+}
+
+window.addEventListener('appinstalled', () => {
+  banner.style.display = 'none';
+  deferredPrompt = null;
+});
+
+/* ── iOS: tampilkan petunjuk manual jika Safari ── */
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isInStandaloneMode = window.navigator.standalone === true;
+const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+if (isIOS && !isInStandaloneMode && isSafari) {
+  setTimeout(() => {
+    const shown = sessionStorage.getItem('ios_pwa_hint');
+    if (shown) return;
+    sessionStorage.setItem('ios_pwa_hint', '1');
+
+    const hint = document.createElement('div');
+    hint.style.cssText = 'position:fixed;bottom:72px;left:12px;right:12px;background:var(--bg-card);border:1px solid var(--border-bright);border-radius:var(--r-lg);padding:14px 16px;z-index:400;box-shadow:0 8px 32px rgba(0,0,0,0.5)';
+    hint.innerHTML = `
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <div style="font-size:24px;line-height:1">📲</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:var(--text-primary);font-family:var(--font-display);margin-bottom:4px">Install di iPhone / iPad</div>
+          <div style="font-size:12px;color:var(--text-secondary);font-family:var(--font-body);line-height:1.6">
+            Ketuk ikon <b style="color:var(--accent)">Bagikan</b> di Safari, lalu pilih
+            <b style="color:var(--accent)">"Add to Home Screen"</b> untuk install HydroSense.
+          </div>
+        </div>
+        <button onclick="this.closest('div[style]').remove()" style="width:28px;height:28px;background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;line-height:1;padding:0;flex-shrink:0">×</button>
+      </div>
+    `;
+    document.body.appendChild(hint);
+    setTimeout(() => hint.remove(), 12000);
+  }, 2500);
+}
+</script>
+
+</body>
+</html>
